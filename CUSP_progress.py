@@ -1,8 +1,8 @@
 import os
-from pathlib import Path
 import geopandas as gpd
 import pandas as pd
 import matplotlib.pyplot as plt
+import datetime
 
 
 def set_env_vars():
@@ -41,39 +41,49 @@ def export_map_results():
     print('saving {}...'.format(gdb_path))
     cusp_buffer_plot.to_file(gdb_path, layer=layer, driver='FileGDB')
 
+    
+def print_region_header(region, sep):
+    width = 50
+    sep1_num = int(width / 2 - int(len(region) / 2))
+    sep2_num = int(width - len(region) - sep1_num)
+    sep1 = sep * sep1_num
+    sep2 = sep * sep2_num
+    print('\n{}{}{}'.format(sep1, region.upper(), sep2))    
+
+
+def get_tool_parameters():
+    reference = arcpy.GetParameterAsText(0)
+    cusp = arcpy.GetParameterAsText(1)
+    out_dir = arcpy.GetParameterAsText(2)
+    simp = int(arcpy.GetParameterAsText(3))
+    buff = int(arcpy.GetParameterAsText(4))
+    return reference, cusp, out_dir, simp, buff
+
 
 if __name__ == '__main__':
 
+    tic = datetime.datetime.now()
+
     set_env_vars()
+
+    reference, cusp, out_dir, simp, buff = get_tool_parameters()
 
     web_mercator_epsg = {'init': 'epsg:3857'}
     wgs84_epsg = {'init': 'epsg:4326'}
-    tolerance = 200
-    buffer = 1000 #  meters
-
-    cusp_results_dir = Path(r'Z:\CUSP_progress\RESULTS')
-    ref_path = Path(r'Z:\CUSP_progress\70K_shoreline_corrected\70K_Shoreline_4CUSP.gdb')
-    cusp_path = Path(r'Z:\CUSP_progress\20190717_contemporary_shoreline.gdb')
     
-    layer = 'Whole_US'
-    print('reading {}\{}...'.format(ref_path, layer))
-    ref_gdf = gpd.read_file(ref_path, layer=layer, crs=wgs84_epsg).to_crs(web_mercator_epsg)
+    print('reading {}...'.format(reference))
+    layer = reference.split(os.sep)[-1]
+    ref_gdf = gpd.read_file(reference, layer=layer, crs=wgs84_epsg).to_crs(web_mercator_epsg)
 
-    layer = 'shoreline'
-    print('reading {}\{}...'.format(cusp_path, layer))
-    cusp_gdf = gpd.read_file(cusp_path, layer=layer, crs=wgs84_epsg)
+    print('reading {}...'.format(cups))
+    layer = cusp.split(os.sep)[-1]
+    cusp_gdf = gpd.read_file(cusp, layer=layer, crs=wgs84_epsg)
 
     results = []
 
     for region in cusp_gdf.NOAA_Regio.unique():
 
-        width = 50
-        sep1_num = int(width / 2 - int(len(region) / 2))
-        sep2_num = int(width - len(region) - sep1_num)
-        sep1 = '-' * sep1_num
-        sep2 = '-' * sep2_num
-        print('\n{}{}{}'.format(sep1, region.upper(), sep2))    
-
+        print_region_header(region, '-')
         print('extracting CUSP data...')
         cusp_region = cusp_gdf[cusp_gdf.NOAA_Regio == region].to_crs(web_mercator_epsg)
 
@@ -99,17 +109,29 @@ if __name__ == '__main__':
         ref_region_clipped_lengths = ref_region_clipped.groupby('State')['length_km_mapped'].sum()
 
         df = pd.DataFrame({
-            'length_km_total': ref_region_lengths,
-            'length_km_mapped': ref_region_clipped_lengths,
+            'km_total': ref_region_lengths / 1000,
+            'km_mapped': ref_region_clipped_lengths / 1000,
             'pct_mapped': ref_region_clipped_lengths / ref_region_lengths,
             'region': [region] * ref_region_lengths.shape[0],
             })
         print(df)
         results.append(df)
 
-        #export_map_results()
-        #plot_region()
+    rounding = {
+        'km_total': 0,
+        'km_mapped': 0,
+        'pct_mapped': 2
+        }
 
-    results_df = pd.concat(results)
+    types = {
+        'km_total': 'int64',
+        'km_mapped': 'int64'
+        }
+
+    results_df = pd.concat(results).round(rounding).astype(types)
+    print()
+    print_region_header('ALL PROCESSED REGIONS', '=')
     print(results_df)
-    results_df.to_csv('Z:\CUSP_progress\Results\CUSP_Progress.txt')
+    results_df.to_csv('{}\CUSP_Progress.txt'.format(out_dir), sep='\t')
+    print()
+    print('TOTAL TIME: {}'.format(datetime.datetime.now() - tic))
