@@ -29,22 +29,6 @@ def set_env_vars():
     os.environ["PROJ_LIB"] = str(proj_lib)
 
 
-def plot_region():
-    ax = ref_gdf.plot(color='red')
-    cusp_region.plot(ax=ax, color='blue')
-    cusp_region_simp.plot(ax=ax, color='cyan')
-    cusp_buffer_plot.plot(ax=ax, color='cyan', alpha=0.5)
-    ref_region_clipped.plot(ax=ax, color='gray')
-    plt.show()
-
-
-def export_map_results():
-    layer = 'CUSP_simp_buff'
-    gdb_path = 'Z:\CUSP_progress\CUSP_Progress.gdb'
-    print('saving {}...'.format(gdb_path))
-    cusp_buffer_plot.to_file(gdb_path, layer=layer, driver='FileGDB')
-
-    
 def print_region_header(region, sep):
     width = 54
     sep1_num = int(width / 2 - int(len(region) / 2))
@@ -54,59 +38,12 @@ def print_region_header(region, sep):
     print('\n{}{}{}'.format(sep1, region.upper(), sep2))    
 
 
-#def get_tool_parameters():
-#    reference = Path(arcpy.GetParameterAsText(0))
-#    cusp = Path(arcpy.GetParameterAsText(1))
-#    out_dir = Path(arcpy.GetParameterAsText(2))
-#    simp = int(arcpy.GetParameterAsText(3))
-#    buff = int(arcpy.GetParameterAsText(4))
-#    is_arc = True
-#    return reference, cusp, out_dir, simp, buff, is_arc
-
-
-#def define_tool_parameters():
-#    reference = Path(r'Z:\CUSP_progress\70K_shoreline_corrected\70K_Shoreline_4CUSP.gdb\Whole_US')
-#    cusp = Path(r'Z:\CUSP_progress\20190717_contemporary_shoreline.gdb\shoreline')
-#    out_dir = Path(r'Z:\CUSP_progress\Results')
-#    simp = 500
-#    buff = 500
-#    is_arc = False
-#    return reference, cusp, out_dir, simp, buff, is_arc
-
-
-#def print_msg(msg):
-#    if not is_arc:
-#        print(msg)
-#    else:
-#        arcpy.AddMessage(msg)
-
-
-def get_args_argsparse():
-    parser = argparse.ArgumentParser(description='Description of your program')
-    
-    parser.add_argument('-r','--reference', help='70k feature class path', required=True)
-    parser.add_argument('-c','--cusp', help='CUSP feature class path', required=True)
-    parser.add_argument('-o','--outdir', help='output directory', required=True)
-    parser.add_argument('-t','--tolerance', help='simplify tolerance (m)', required=False, default=500)
-    parser.add_argument('-b','--buffer', help='buffer (m)', required=False, default=500)
-
-    args = vars(parser.parse_args())
-
-    ref = Path(args['reference'])
-    cusp = Path(args['cusp'])
-    out = Path(args['outdir'])
-    simp = int(args['tolerance'])
-    buff = int(args['buffer'])
-
-    return ref, cusp, out, simp, buff
-
-
 def get_args():
-    reference = input('Enter 70k shoreline feature class path (in quotes if path has spaces):  ')
-    cusp = input('Enter CUSP feature class path (in quotes if path has spaces):  ')
-    out_dir = input('Enter output directory (in quotes if path has spaces):  ')
-    simp = input('Enter CUSP simplification tolerane (m):  ')
-    buff = input('Enter CUSP buffer value (m):  ')
+    reference = input('\nEnter 70k shoreline feature class path:\n>'.upper())
+    cusp = input('\nEnter CUSP feature class path:\n>'.upper())
+    out_dir = input('\nEnter output directory:\n>'.upper())
+    simp = input('\nEnter CUSP simplification tolerance (m)\n>  '.upper())
+    buff = input('\nEnter CUSP buffer value (m)\n>'.upper())
     
     return Path(reference), Path(cusp), Path(out_dir), int(simp), int(buff)
 
@@ -125,26 +62,22 @@ def print_splash():
      \_____|\____/|_____/|_|      |_|  \_\\____/|______|______|_|  \_\
 
     ==================================================================
-
     """
 
     print(splash)
 
 
 if __name__ == '__main__':
-    
     tic = datetime.now()
     print_splash()
 
     reference, cusp, out_dir, simp, buff = get_args()
     set_env_vars()
 
-    #reference, cusp, out_dir, simp, buff, is_arc = get_tool_parameters()
-    #reference, cusp, out_dir, simp, buff, is_arc = define_tool_parameters()
-
     web_mercator_epsg = {'init': 'epsg:3857'}
     wgs84_epsg = {'init': 'epsg:4326'}
     
+    print()
     print('reading {}...'.format(reference))
     ref_gdb = str(reference.parent)
     ref_layer = reference.name
@@ -160,6 +93,7 @@ if __name__ == '__main__':
     types = {'km_total': 'int64', 'km_mapped': 'int64'}
 
     for region in cusp_gdf.NOAA_Regio.unique():
+        region_id = ''.join([c.capitalize() for c in region.split(' ')])
         print_region_header(region, '-')
         print('extracting CUSP data...')
         cusp_region = cusp_gdf[cusp_gdf.NOAA_Regio == region].to_crs(web_mercator_epsg)
@@ -171,10 +105,14 @@ if __name__ == '__main__':
         print('simplifying CUSP data...')
         cusp_region_simp = cusp_region.copy()
         cusp_region_simp['geometry'] = cusp_region.geometry.simplify(tolerance=simp, preserve_topology=True)
-       
+        cusp_simp_shp = out_dir / 'CUSP_{}_simplified.shp'.format(region_id)
+        cusp_region_simp['geometry'].to_file(cusp_simp_shp)
+
         print('buffering simplified CUSP data...')
         cusp_region_simp_buff = cusp_region_simp.buffer(buff).unary_union
         cusp_buffer_plot = gpd.GeoDataFrame(geometry=[cusp_region_simp_buff])
+        cusp_buff_shp = out_dir / 'CUSP_{}_buffer.shp'.format(region_id)
+        cusp_buffer_plot.to_file(cusp_buff_shp)
 
         print('clipping 70k shoreline with bufferd simplified CUSP data...')
         ref_region_clipped = ref_region.copy()
