@@ -5,7 +5,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 from datetime import datetime
-#import arcpy
 
 
 def set_env_vars():
@@ -15,11 +14,11 @@ def set_env_vars():
                                           'anaconda3', 'Scripts')
 
     gdal_data = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 
-                                        'anaconda3', 'envs', 'cusp', 
+                                        'anaconda3', 'envs', 'cusp_noarc', 
                                         'Library', 'share', 'gdal')
 
     proj_lib = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 
-                                       'anaconda3', 'envs', 'cusp', 
+                                       'anaconda3', 'envs', 'cusp_noarc', 
                                        'Library', 'share')
 
     if script_path.name not in os.environ["PATH"]:
@@ -42,17 +41,16 @@ def get_args():
     reference = input('\nEnter 70k shoreline feature class path:\n>'.upper())
     cusp = input('\nEnter CUSP feature class path:\n>'.upper())
     out_dir = input('\nEnter output directory:\n>'.upper())
-    simp = input('\nEnter CUSP simplification tolerance (m)\n>  '.upper())
+    simp = input('\nEnter CUSP simplification tolerance (m)\n>'.upper())
     buff = input('\nEnter CUSP buffer value (m)\n>'.upper())
     
-    return Path(reference), Path(cusp), Path(out_dir), int(simp), int(buff)
+    return Path(reference.strip()), Path(cusp.strip()), Path(out_dir.strip()), int(simp), int(buff)
 
 
 def print_splash():
     splash = r"""    
 
     ==================================================================
-
                        NOAA Remote Sensing Division's
       _____ _    _  _____ _____    _____  _    _ _      ______ _____  
      / ____| |  | |/ ____|  __ \  |  __ \| |  | | |    |  ____|  __ \ 
@@ -94,6 +92,7 @@ if __name__ == '__main__':
 
     for region in cusp_gdf.NOAA_Regio.unique():
         region_id = ''.join([c.capitalize() for c in region.split(' ')])
+        cusp_gpkg = out_dir / 'CUSP_{}.gpkg'.format(region_id)
         print_region_header(region, '-')
         print('extracting CUSP data...')
         cusp_region = cusp_gdf[cusp_gdf.NOAA_Regio == region].to_crs(web_mercator_epsg)
@@ -102,17 +101,20 @@ if __name__ == '__main__':
         ref_region = ref_gdf[ref_gdf.NOAA_REGIO == region].to_crs(web_mercator_epsg)
         ref_region['km_total'] = ref_region.geometry.length
 
-        print('simplifying CUSP data...')
+        print('simplifying CUSP data...', end='')
         cusp_region_simp = cusp_region.copy()
         cusp_region_simp['geometry'] = cusp_region.geometry.simplify(tolerance=simp, preserve_topology=True)
-        cusp_simp_shp = out_dir / 'CUSP_{}_simplified.shp'.format(region_id)
-        cusp_region_simp['geometry'].to_file(cusp_simp_shp)
+        print('saving to geopackage...')
+        cusp_simp_shp = out_dir / 'CUSP.gpkg'.format(region_id)
+        layer = 'CUSP_{}_simplified'.format(region_id)
+        cusp_region_simp['geometry'].to_file(cusp_gpkg, layer=layer, driver='GPKG')
 
-        print('buffering simplified CUSP data...')
+        print('buffering simplified CUSP data...', end='')
         cusp_region_simp_buff = cusp_region_simp.buffer(buff).unary_union
         cusp_buffer_plot = gpd.GeoDataFrame(geometry=[cusp_region_simp_buff])
-        cusp_buff_shp = out_dir / 'CUSP_{}_buffer.shp'.format(region_id)
-        cusp_buffer_plot.to_file(cusp_buff_shp)
+        print('saving to geopackage...')
+        layer = 'CUSP_{}_buffered'.format(region_id)
+        cusp_buffer_plot.to_file(cusp_gpkg, layer=layer, driver='GPKG')
 
         print('clipping 70k shoreline with bufferd simplified CUSP data...')
         ref_region_clipped = ref_region.copy()
