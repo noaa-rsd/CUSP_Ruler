@@ -14,11 +14,11 @@ def set_env_vars():
                                           'anaconda3', 'Scripts')
 
     gdal_data = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 
-                                        'anaconda3', 'envs', 'cusp_noarc', 
+                                        'anaconda3', 'envs', 'cusp', 
                                         'Library', 'share', 'gdal')
 
     proj_lib = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 
-                                       'anaconda3', 'envs', 'cusp_noarc', 
+                                       'anaconda3', 'envs', 'cusp', 
                                        'Library', 'share')
 
     if script_path.name not in os.environ["PATH"]:
@@ -41,8 +41,8 @@ def get_args():
     reference = input('\nEnter 70k shoreline feature class path:\n>'.upper())
     cusp = input('\nEnter CUSP feature class path:\n>'.upper())
     out_dir = input('\nEnter output directory:\n>'.upper())
-    simp = input('\nEnter CUSP simplification tolerance (m)\n>'.upper())
-    buff = input('\nEnter CUSP buffer value (m)\n>'.upper())
+    simp = input('\nEnter CUSP simplification tolerance (meters)\n>'.upper())
+    buff = input('\nEnter CUSP buffer value (meters)\n>'.upper())
     
     return Path(reference.strip()), Path(cusp.strip()), Path(out_dir.strip()), int(simp), int(buff)
 
@@ -66,6 +66,7 @@ def print_splash():
 
 
 if __name__ == '__main__':
+
     tic = datetime.now()
     print_splash()
 
