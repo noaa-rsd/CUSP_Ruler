@@ -1,10 +1,13 @@
 import os
-import argparse
-import geopandas as gpd
-import pandas as pd
-import matplotlib.pyplot as plt
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from functools import partial
+import numpy as np
+import pandas as pd
+import geopandas as gpd
+import pyproj
+from shapely.geometry import MultiPolygon
+from shapely.ops import transform, unary_union
 
 
 def set_env_vars():
@@ -43,8 +46,27 @@ def get_args():
     out_dir = input('\nEnter output directory:\n>'.upper())
     simp = input('\nEnter CUSP simplification tolerance (meters)\n>'.upper())
     buff = input('\nEnter CUSP buffer value (meters)\n>'.upper())
-    
+
     return Path(reference.strip()), Path(cusp.strip()), Path(out_dir.strip()), int(simp), int(buff)
+
+
+#def get_arc_tool_parameters():
+#    reference = Path(arcpy.GetParameterAsText(0))
+#    cusp = Path(arcpy.GetParameterAsText(1))
+#    out_dir = Path(arcpy.GetParameterAsText(2))
+#    simp = int(arcpy.GetParameterAsText(3))
+#    buff = int(arcpy.GetParameterAsText(4))
+#    return reference, cusp, out_dir, simp, buff
+
+
+def define_args():
+    reference = Path(r'Z:\CUSP_progress\70K_shoreline_corrected\70K_Shoreline_4CUSP.gdb\Whole_US')
+    cusp = Path(r'Z:\CUSP_progress\20190717_contemporary_shoreline.gdb\shoreline')
+    out_dir = Path(r'Z:\CUSP_progress\Results\test')
+    simp = 0.002  # degrees
+    buff = 1000  # meters
+
+    return reference, cusp, out_dir, simp, buff
 
 
 def print_splash():
@@ -65,22 +87,83 @@ def print_splash():
     print(splash)
 
 
+def haversine(segments):
+    segments = np.radians(segments)
+    lon1, lat1 = segments[:, 0], segments[:, 1]
+    lon2, lat2 = segments[:, 2], segments[:, 3]
+    dlon = lon2 - lon1 
+    dlat = lat2 - lat1
+    a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
+    c = 2 * np.arcsin(np.sqrt(a))
+    r = 6371000  # meters (assumed Earth radius)
+    return c * r
+
+
+def calc_multiline_length(multiline):
+    multiline_length = 0
+    for line in multiline:
+        a = line.coords[:]
+        line_segments = np.hstack((a[0:-1], a[1:]))
+        line_length = np.sum(haversine(line_segments))
+        multiline_length += line_length
+    return multiline_length
+
+
+def lat_lon_buffer(line, radius):
+    _lon, _lat = line.centroid.coords[0]
+    aeqd = pyproj.Proj(proj='aeqd', ellps='WGS84', datum='WGS84', 
+                       lat_0=_lat, lon_0=_lon)
+    projected_line = transform(partial(pyproj.transform, wgs84_globe, aeqd), line)
+    transformed_buffer = transform(partial(pyproj.transform, aeqd, wgs84_globe), 
+                     projected_line.buffer(radius))
+
+    #if transformed_buffer.is_valid:
+    #    return transformed_buffer
+    #else:
+    #    _transformed_buffer = transformed_buffer.buffer(0)
+    #    if _transformed_buffer.is_valid:
+    #        return _transformed_buffer
+    #    else:
+    #        print(_transformed_buffer)
+
+    try:
+        if not transformed_buffer.is_valid:
+            _transformed_buffer = transformed_buffer.buffer(0.0)
+            assert _transformed_buffer.geom_type == 'Polygon'
+            assert _transformed_buffer.is_valid
+            transformed_buffer = _transformed_buffer
+
+        return transformed_buffer
+
+    except Exception as e:
+        print(r"ERROR: POLYGON GEOMETRY ERROR (polygon will be excluded from geopackage):")
+        print(transformed_buffer)
+
+
+def buffer_lat_lon_multiline(multiline, radius):
+    print('(buffering line segments...)')
+    buffers = [lat_lon_buffer(line, radius) for line in multiline]
+    print('(creating union of buffered line segments...)')
+    return unary_union([b for b in buffers if b])
+
+
 if __name__ == '__main__':
 
     tic = datetime.now()
     print_splash()
 
-    reference, cusp, out_dir, simp, buff = get_args()
+    reference, cusp, out_dir, simp, buff = define_args()
     set_env_vars()
 
+    robinson_epsg = {'init': 'epsg:54030'}
     web_mercator_epsg = {'init': 'epsg:3857'}
     wgs84_epsg = {'init': 'epsg:4326'}
+    wgs84_globe = pyproj.Proj(proj='latlong', ellps='WGS84')
     
-    print()
     print('reading {}...'.format(reference))
     ref_gdb = str(reference.parent)
     ref_layer = reference.name
-    ref_gdf = gpd.read_file(ref_gdb, layer=ref_layer, crs=wgs84_epsg)
+    ref_gdf = gpd.read_file(ref_gdb, layer=ref_layer).to_crs(wgs84_epsg)
 
     print('reading {}...'.format(cusp))
     cusp_gdb = str(cusp.parent)
@@ -88,48 +171,51 @@ if __name__ == '__main__':
     cusp_gdf = gpd.read_file(cusp_gdb, layer=cusp_layer, crs=wgs84_epsg)
 
     results = []
-    rounding = {'km_total': 0, 'km_mapped': 0, 'pct_mapped': 2}
+    rounding = {'km_total': 3, 'km_mapped': 3, 'pct_mapped': 3}
     types = {'km_total': 'int64', 'km_mapped': 'int64'}
 
-    for region in cusp_gdf.NOAA_Regio.unique():
+    for region in [r for r in cusp_gdf.NOAA_Regio.unique() if r == 'Southeast and Caribbean']:
         region_id = ''.join([c.capitalize() for c in region.split(' ')])
         cusp_gpkg = out_dir / 'CUSP_{}.gpkg'.format(region_id)
         print_region_header(region, '-')
         print('extracting CUSP data...')
-        cusp_region = cusp_gdf[cusp_gdf.NOAA_Regio == region].to_crs(web_mercator_epsg)
+        cusp_region = cusp_gdf[cusp_gdf.NOAA_Regio == region]
 
-        print('extracting 70k shoreline...')
-        ref_region = ref_gdf[ref_gdf.NOAA_REGIO == region].to_crs(web_mercator_epsg)
-        ref_region['km_total'] = ref_region.geometry.length
+        print('extracting reference shoreline...')
+        ref_region = ref_gdf[ref_gdf.NOAA_REGIO == region].copy()
+        print('(measuring great-circle lengths...)')
+        great_circle_lengths = [calc_multiline_length(g) for g in ref_region['geometry']]
+        ref_region['km_total'] = great_circle_lengths
 
-        print('simplifying CUSP data...', end='')
+        print('simplifying CUSP data...')
         cusp_region_simp = cusp_region.copy()
         cusp_region_simp['geometry'] = cusp_region.geometry.simplify(tolerance=simp, preserve_topology=True)
-        print('saving to geopackage...')
-        cusp_simp_shp = out_dir / 'CUSP.gpkg'.format(region_id)
+        print('(saving to geopackage...)')
         layer = 'CUSP_{}_simplified'.format(region_id)
         cusp_region_simp['geometry'].to_file(cusp_gpkg, layer=layer, driver='GPKG')
 
-        print('buffering simplified CUSP data...', end='')
-        cusp_region_simp_buff = cusp_region_simp.buffer(buff).unary_union
-        cusp_buffer_plot = gpd.GeoDataFrame(geometry=[cusp_region_simp_buff])
-        print('saving to geopackage...')
+        print('buffering simplified CUSP data...')
+        cusp_region_simp_buff = buffer_lat_lon_multiline(cusp_region_simp.geometry, buff)
+        cusp_buffer_gdf = gpd.GeoDataFrame(geometry=[cusp_region_simp_buff]).explode()
+        print('(saving to geopackage...)')
         layer = 'CUSP_{}_buffered'.format(region_id)
-        cusp_buffer_plot.to_file(cusp_gpkg, layer=layer, driver='GPKG')
+        cusp_buffer_gdf.to_file(cusp_gpkg, layer=layer, driver='GPKG')
 
-        print('clipping 70k shoreline with bufferd simplified CUSP data...')
+        print('clipping reference shoreline with buffered simplified CUSP data...')
         ref_region_clipped = ref_region.copy()
         ref_region_clipped.geometry = ref_region.intersection(cusp_region_simp_buff)
-        ref_region_clipped['km_mapped'] = ref_region_clipped.geometry.length
-      
+        print('(measuring great-circle lengths...)')
+        #ref_region_clipped['km_mapped'] = ref_region_clipped['geometry'].apply(lambda g: calc_multiline_length(g))
+        ref_region_clipped['km_mapped'] = [calc_multiline_length(g) for g in ref_region_clipped['geometry']]
+
         print('summing regional stats...')
         ref_region_lengths = ref_region.groupby('State')['km_total'].sum()
         ref_region_clipped_lengths = ref_region_clipped.groupby('State')['km_mapped'].sum()
 
         df = pd.DataFrame({'km_total': ref_region_lengths / 1000,
-                           'km_mapped': ref_region_clipped_lengths / 1000,
-                           'pct_mapped': ref_region_clipped_lengths / ref_region_lengths,
-                           'region': [region] * ref_region_lengths.shape[0]})
+                            'km_mapped': ref_region_clipped_lengths / 1000,
+                            'pct_mapped': ref_region_clipped_lengths / ref_region_lengths,
+                            'region': [region] * ref_region_lengths.shape[0]})
         print(df.round(rounding).astype(types))
         results.append(df)
 
@@ -137,5 +223,5 @@ if __name__ == '__main__':
     print_region_header('ALL PROCESSED REGIONS', '=')
     print(results_df)
     results_df.to_csv('{}\CUSP_Progress.txt'.format(out_dir), sep='\t')
-    print()
+
     print('TOTAL TIME: {}'.format(datetime.now() - tic))
