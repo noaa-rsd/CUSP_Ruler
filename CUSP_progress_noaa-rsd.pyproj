@@ -5,7 +5,8 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{6021e87a-af9a-4c10-8a58-b247b510a9b7}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>haversine_dist.py</StartupFile>
+    <StartupFile>
+    </StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -20,13 +21,7 @@
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="CUSP_progress.py" />
-    <Compile Include="haversine_dist.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="module1.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="CUSP_Ruler.py" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|cusp" />
