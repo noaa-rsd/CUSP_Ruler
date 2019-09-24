@@ -8,6 +8,7 @@ import geopandas as gpd
 import pyproj
 from shapely.geometry import MultiPolygon
 from shapely.ops import transform, unary_union
+from cartopy.geodesic import Geodesic
 
 
 def set_env_vars(env_name):
@@ -38,7 +39,7 @@ def define_args():
     reference = Path(r'Z:\CUSP_progress\70K_shoreline_corrected\70K_Shoreline_4CUSP.gdb\Whole_US')
     cusp = Path(r'Z:\CUSP_progress\20190717_contemporary_shoreline.gdb\shoreline')
     out_dir = Path(r'Z:\CUSP_progress\Results')
-    simp = 0.001  # degrees
+    simp = 0.002  # degrees
     buff = 500  # meters
     return reference, cusp, out_dir, simp, buff
 
@@ -59,28 +60,6 @@ def print_splash():
     """
 
     print(splash)
-
-
-def haversine(segments):
-    segments = np.radians(segments)
-    lon1, lat1 = segments[:, 0], segments[:, 1]
-    lon2, lat2 = segments[:, 2], segments[:, 3]
-    dlon = lon2 - lon1 
-    dlat = lat2 - lat1
-    a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
-    c = 2 * np.arcsin(np.sqrt(a))
-    r = 6371000  # meters (assumed Earth radius)
-    return c * r
-
-
-def calc_multiline_length(multiline):
-    multiline_length = 0
-    for line in multiline:
-        a = line.coords[:]
-        line_segments = np.hstack((a[0:-1], a[1:]))
-        line_length = np.sum(haversine(line_segments))
-        multiline_length += line_length
-    return multiline_length
 
 
 def lat_lon_buffer(line, radius):
@@ -109,9 +88,26 @@ def buffer_lat_lon_multiline(multiline, radius):
     return unary_union([b for b in buffers if b])
 
 
+
+def distance(pt1, pt2):  # from https://pelson.github.io/2018/coast-path/
+    result = np.array(
+        geod.inverse(np.asanyarray(pt1), np.asanyarray(pt2)))
+    return result[:, 0]
+
+
+def linestring_distance(geom):  # from https://pelson.github.io/2018/coast-path/
+    if hasattr(geom, 'geoms'):
+        return sum(linestring_distance(subgeom) for subgeom in geom.geoms)
+    else:
+        points = np.array(geom.coords)
+        return distance(points[:-1, :2], points[1:, :2]).sum()
+
+
 if __name__ == '__main__':
     tic = datetime.now()
     print_splash()
+
+    geod = Geodesic()
 
     reference, cusp, out_dir, simp, buff = define_args()
     env_name = 'cusp'
@@ -130,7 +126,7 @@ if __name__ == '__main__':
     cusp_gdf = gpd.read_file(cusp_gdb, layer=cusp_layer, crs=wgs84_epsg)
 
     results = []
-    rounding = {'km_total': 3, 'km_mapped': 3, 'pct_mapped': 3}
+    rounding = {'km_total': 0, 'km_mapped': 0, 'pct_mapped': 2}
     types = {'km_total': 'int64', 'km_mapped': 'int64'}
 
     for region in cusp_gdf.NOAA_Regio.unique():
@@ -144,7 +140,8 @@ if __name__ == '__main__':
         print('extracting reference shoreline...')
         ref_region = ref_gdf[ref_gdf.NOAA_REGIO == region].copy()
         print(' (measuring great-circle lengths...)')
-        great_circle_lengths = [calc_multiline_length(g) for g in ref_region['geometry']]
+        #great_circle_lengths = [calc_multiline_length(g) for g in ref_region['geometry']]
+        great_circle_lengths = [linestring_distance(g) for g in ref_region['geometry']]
         ref_region['km_total'] = great_circle_lengths
 
         print('simplifying CUSP data...')
@@ -155,7 +152,7 @@ if __name__ == '__main__':
         layer = 'CUSP_{}_simplified'.format(region_id)
         cusp_region_simp['geometry'].to_file(cusp_gpkg, layer=layer, driver='GPKG')
 
-        print('buffering simplified CUSP data...')
+        print('buffering simplified CUSP data)...')
         cusp_region_simp_buff = buffer_lat_lon_multiline(cusp_region_simp.geometry, buff)
         cusp_buffer_gdf = gpd.GeoDataFrame(geometry=[cusp_region_simp_buff]).explode()
         print(' (saving to geopackage...)')
@@ -166,7 +163,8 @@ if __name__ == '__main__':
         ref_region_clipped = ref_region.copy()
         ref_region_clipped.geometry = ref_region.intersection(cusp_region_simp_buff)
         print(' (measuring great-circle lengths...)')
-        great_circle_lengths = [calc_multiline_length(g) for g in ref_region_clipped['geometry']]
+        #great_circle_lengths = [calc_multiline_length(g) for g in ref_region_clipped['geometry']]
+        great_circle_lengths = [linestring_distance(g) for g in ref_region_clipped['geometry']]
         ref_region_clipped['km_mapped'] = great_circle_lengths
 
         print('summing regional stats...')
