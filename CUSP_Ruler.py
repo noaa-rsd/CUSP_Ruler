@@ -3,13 +3,10 @@ import json
 from datetime import datetime
 from pathlib import Path
 from functools import partial
-
 import tkinter as tk
 from tkinter import filedialog
-
 import numpy as np
 import pandas as pd
-
 import geopandas as gpd
 import pyproj
 from shapely.ops import transform, unary_union
