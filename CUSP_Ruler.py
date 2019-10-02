@@ -2,8 +2,13 @@ import os
 from datetime import datetime
 from pathlib import Path
 from functools import partial
+
+import tkinter as tk
+from tkinter import filedialog
+
 import numpy as np
 import pandas as pd
+
 import geopandas as gpd
 import pyproj
 from shapely.geometry import MultiPolygon
@@ -36,9 +41,11 @@ def print_region_header(region, sep):
 
 
 def define_args():
-    reference = Path(r'Z:\CUSP_progress\70K_shoreline_corrected\70K_Shoreline_4CUSP.gdb\Whole_US')
-    cusp = Path(r'Z:\CUSP_progress\20190717_contemporary_shoreline.gdb\shoreline')
-    out_dir = Path(r'Z:\CUSP_progress\Results')
+    reference_gpd = Path(filedialog.askdirectory(title='Select Reference Shoreline Geodatabase'))
+    reference = reference_gpd / 'Whole_US'
+    cusp_gdb = Path(filedialog.askdirectory(title='Select CUSP Geodatabase'))
+    cusp = cusp_gdb / 'shoreline'
+    out_dir = Path(filedialog.askdirectory(title='Select Output Directory'))
     simp = 0.002  # degrees
     buff = 500  # meters
     return reference, cusp, out_dir, simp, buff
@@ -46,7 +53,6 @@ def define_args():
 
 def print_splash():
     splash = r"""    
-
     ==================================================================
                        NOAA Remote Sensing Division's
       _____ _    _  _____ _____    _____  _    _ _      ______ _____  
@@ -55,7 +61,6 @@ def print_splash():
     | |    | |  | |\___ \|  ___/  |  _  /| |  | | |    |  __| |  _  / 
     | |____| |__| |____) | |      | | \ \| |__| | |____| |____| | \ \ 
      \_____|\____/|_____/|_|      |_|  \_\\____/|______|______|_|  \_\
-
     ==================================================================
     """
 
@@ -88,10 +93,8 @@ def buffer_lat_lon_multiline(multiline, radius):
     return unary_union([b for b in buffers if b])
 
 
-
 def distance(pt1, pt2):  # from https://pelson.github.io/2018/coast-path/
-    result = np.array(
-        geod.inverse(np.asanyarray(pt1), np.asanyarray(pt2)))
+    result = np.array(geod.inverse(np.asanyarray(pt1), np.asanyarray(pt2)))
     return result[:, 0]
 
 
@@ -103,9 +106,24 @@ def linestring_distance(geom):  # from https://pelson.github.io/2018/coast-path/
         return distance(points[:-1, :2], points[1:, :2]).sum()
 
 
+def format_output_file(output_file):
+    temp_file = output_file.replace('.txt', '_.txt')
+    with open(temp_file, 'w') as new_f:
+        with open(output_file, 'r') as old_f:
+            for line in old_f:
+                new_line = line.rstrip() + ';' + os.linesep
+                print(new_line)
+                new_f.write(new_line)
+    os.remove(output_file)
+    os.rename(temp_file, output_file)
+
+
 if __name__ == '__main__':
     tic = datetime.now()
     print_splash()
+
+    root = tk.Tk()
+    root.withdraw()
 
     geod = Geodesic()
 
@@ -126,8 +144,8 @@ if __name__ == '__main__':
     cusp_gdf = gpd.read_file(cusp_gdb, layer=cusp_layer, crs=wgs84_epsg)
 
     results = []
-    rounding = {'km_total': 0, 'km_mapped': 0, 'pct_mapped': 2}
-    types = {'km_total': 'int64', 'km_mapped': 'int64'}
+    rounding = {'StateLeng': 0, 'ClippedLeng': 0, 'Percentage': 2}
+    types = {'StateLeng': 'int64', 'ClippedLeng': 'int64'}
 
     for region in cusp_gdf.NOAA_Regio.unique():
         region_id = ''.join([c.capitalize() for c in region.split(' ')])
@@ -139,15 +157,13 @@ if __name__ == '__main__':
 
         print('extracting reference shoreline...')
         ref_region = ref_gdf[ref_gdf.NOAA_REGIO == region].copy()
-        print(' (measuring great-circle lengths...)')
-        #great_circle_lengths = [calc_multiline_length(g) for g in ref_region['geometry']]
-        great_circle_lengths = [linestring_distance(g) for g in ref_region['geometry']]
-        ref_region['km_total'] = great_circle_lengths
+        print(' (measuring geodesic lengths...)')
+        geodesic_lengths = [linestring_distance(g) for g in ref_region['geometry']]
+        ref_region['km_total'] = geodesic_lengths
 
         print('simplifying CUSP data...')
         cusp_region_simp = cusp_region.copy()
-        cusp_region_simp['geometry'] = cusp_region.geometry.simplify(tolerance=simp, 
-                                                                     preserve_topology=True)
+        cusp_region_simp['geometry'] = cusp_region.geometry.simplify(tolerance=simp, preserve_topology=True)
         print(' (saving to geopackage...)')
         layer = 'CUSP_{}_simplified'.format(region_id)
         cusp_region_simp['geometry'].to_file(cusp_gpkg, layer=layer, driver='GPKG')
@@ -159,28 +175,32 @@ if __name__ == '__main__':
         layer = 'CUSP_{}_buffered'.format(region_id)
         cusp_buffer_gdf.to_file(cusp_gpkg, layer=layer, driver='GPKG')
 
-        print('clipping reference shoreline with buffered simplified CUSP data...')
+        print('clipping reference shoreline with simplified CUSP buffers...')
         ref_region_clipped = ref_region.copy()
         ref_region_clipped.geometry = ref_region.intersection(cusp_region_simp_buff)
-        print(' (measuring great-circle lengths...)')
-        #great_circle_lengths = [calc_multiline_length(g) for g in ref_region_clipped['geometry']]
-        great_circle_lengths = [linestring_distance(g) for g in ref_region_clipped['geometry']]
-        ref_region_clipped['km_mapped'] = great_circle_lengths
+        print(' (measuring geodesic lengths...)')
+        geodesic_lengths = [linestring_distance(g) for g in ref_region_clipped['geometry']]
+        ref_region_clipped['km_mapped'] = geodesic_lengths
 
         print('summing regional stats...')
         ref_region_lengths = ref_region.groupby('State')['km_total'].sum()
         ref_region_clipped_lengths = ref_region_clipped.groupby('State')['km_mapped'].sum()
 
-        df = pd.DataFrame({'km_total': ref_region_lengths / 1000,
-                           'km_mapped': ref_region_clipped_lengths / 1000,
-                           'pct_mapped': ref_region_clipped_lengths / ref_region_lengths,
-                           'region': [region] * ref_region_lengths.shape[0]})
+        df = pd.DataFrame({'StateLeng': ref_region_lengths / 1000,
+                           'ClippedLeng': ref_region_clipped_lengths / 1000,
+                           'Percentage': ref_region_clipped_lengths / ref_region_lengths,
+                           'noaaRegion': [region] * ref_region_lengths.shape[0]})
 
-        print(df.round(rounding).astype(types))
-        results.append(df)
+        df.index.names = ['stateName']
+        col_order = ['noaaRegion', 'ClippedLeng', 'StateLeng', 'Percentage']
+        print(df[col_order].round(rounding).astype(types))
+        results.append(df[col_order])
 
     results_df = pd.concat(results).round(rounding).astype(types)
     print_region_header('ALL PROCESSED REGIONS', '=')
     print(results_df)
-    results_df.to_csv('{}\CUSP_Progress.txt'.format(out_dir), sep='\t')
+
+    output_file = '{}\CUSP_Progress.txt'.format(out_dir)
+    results_df.to_csv(output_file, sep=',')
+    format_output_file(output_file)
     print('TOTAL TIME: {}'.format(datetime.now() - tic))

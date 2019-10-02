@@ -5,14 +5,13 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{6021e87a-af9a-4c10-8a58-b247b510a9b7}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>
-    </StartupFile>
+    <StartupFile>test.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <InterpreterId>CondaEnv|CondaEnv|qchecker</InterpreterId>
+    <InterpreterId>CondaEnv|CondaEnv|test</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
@@ -22,12 +21,16 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="CUSP_Ruler.py" />
+    <Compile Include="test.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|cusp" />
     <InterpreterReference Include="CondaEnv|CondaEnv|cusp_noarc" />
     <InterpreterReference Include="CondaEnv|CondaEnv|cusp_ruler" />
     <InterpreterReference Include="CondaEnv|CondaEnv|qchecker" />
+    <InterpreterReference Include="CondaEnv|CondaEnv|test" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
