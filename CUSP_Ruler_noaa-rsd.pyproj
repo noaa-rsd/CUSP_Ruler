@@ -5,7 +5,8 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{ab6da044-441e-4e47-acdd-6395daead051}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>CUSP_Ruler_v1-1.py</StartupFile>
+    <StartupFile>
+    </StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -20,12 +21,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="default_paths.txt" />
-    <Content Include="tile.html" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CUSP_Ruler.py" />
-    <Compile Include="CUSP_Ruler_v1-1.py" />
-    <Compile Include="test.py" />
+    <Compile Include="CUSP_Ruler_v1-1-rc1.py" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|cusp" />
