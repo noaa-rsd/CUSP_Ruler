@@ -12,7 +12,6 @@ import pandas as pd
 
 import geopandas as gpd
 import pyproj
-from shapely.geometry import MultiPolygon
 from shapely.ops import transform, unary_union
 from cartopy.geodesic import Geodesic
 
@@ -73,8 +72,8 @@ def print_splash():
     | |____| |__| |____) | |      | | \ \| |__| | |____| |____| | \ \ 
      \_____|\____/|_____/|_|      |_|  \_\\____/|______|______|_|  \_\
     
-                                   v1.1
-     ==================================================================
+                                   v1.1-rc1
+    ==================================================================
     """
 
     print(splash)
@@ -100,9 +99,9 @@ def lat_lon_buffer(line, radius):
 
 
 def buffer_lat_lon_multiline(multiline, radius):
-    print('-->buffering line segments...')
+    print('(buffering line segments...)')
     buffers = [lat_lon_buffer(line, radius) for line in multiline]
-    print('-->creating union of buffered line segments...')
+    print('(creating union of buffered line segments...)')
     return unary_union([b for b in buffers if b])
 
 
@@ -190,28 +189,28 @@ if __name__ == '__main__':
 
         print('\nextracting reference shoreline...')
         ref_region = ref_gdf[ref_gdf.NOAA_REGIO == region].copy()
-        print('-->measuring geodesic lengths...')
+        print('(measuring geodesic lengths...)')
         geodesic_lengths = [linestring_distance(g) for g in ref_region['geometry']]
         ref_region['km_total'] = geodesic_lengths
 
         print('\nsimplifying CUSP data...')
         cusp_region_simp = cusp_region.copy()
         cusp_region_simp['geometry'] = cusp_region.geometry.simplify(tolerance=simp, preserve_topology=True)
-        print('-->saving to geopackage...')
+        print('(saving to geopackage...)')
         layer = 'CUSP_{}_simplified'.format(region_id)
         cusp_region_simp['geometry'].to_file(cusp_gpkg, layer=layer, driver='GPKG')
 
-        print('\nbuffering simplified CUSP data)...')
+        print('\nbuffering simplified CUSP data...')
         cusp_region_simp_buff = buffer_lat_lon_multiline(cusp_region_simp.geometry, buff)
         cusp_buffer_gdf = gpd.GeoDataFrame(geometry=[cusp_region_simp_buff]).explode()
-        print('-->saving to geopackage...')
+        print('(saving to geopackage...)')
         layer = 'CUSP_{}_buffered'.format(region_id)
         cusp_buffer_gdf.to_file(cusp_gpkg, layer=layer, driver='GPKG')
 
         print('\nclipping reference shoreline with simplified CUSP buffers...')
         ref_region_clipped = ref_region.copy()
         ref_region_clipped.geometry = ref_region.intersection(cusp_region_simp_buff)
-        print('-->measuring geodesic lengths...')
+        print('(measuring geodesic lengths...)')
         geodesic_lengths = [linestring_distance(g) for g in ref_region_clipped['geometry']]
         ref_region_clipped['km_mapped'] = geodesic_lengths
 

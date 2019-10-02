@@ -1,1 +1,1 @@
-{"reference_gdb": "Z:\\CUSP_progress\\70K_shoreline_corrected", "cusp_gdb": "Z:\\CUSP_progress", "output_dir": "Z:\\"}
+{"reference_gdb": "Z:\\CUSP_progress\\70K_shoreline_corrected", "cusp_gdb": "Z:\\CUSP_progress", "output_dir": "Z:\\CUSP_progress"}
