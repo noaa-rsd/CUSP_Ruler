@@ -1,1 +1,1 @@
-{"reference_gdb": "Z:\\CUSP_Ruler\\70K_shoreline_corrected", "cusp_gdb": "Z:\\CUSP_Ruler", "output_dir": "Z:\\CUSP_Ruler"}
+{"reference_gdb": "C:\\Users\\Nick.Forfinski-Sarko\\Documents\\ArcGIS\\Projects\\cusp_ruler", "cusp_gdb": "Z:\\CUSP_Ruler", "output_dir": "C:\\"}
