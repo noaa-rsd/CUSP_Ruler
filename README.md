@@ -1,8 +1,6 @@
-Las Copier
+CUSP Ruler
 ----------
 
-LAS Copier copies to a local directory the LAS tiles assigned to the specified reviewer. The list of available reviewers is read from the "Reviewer" attribute in specified tile-assignment shapefile.
-
-NOTE:  Currently, only compatible with ArcMap.
+CUSP Ruler is a NOAA Remote Sensing Division ArcPro tool that calculates the length of Continually Updated Shoreline Product (CUSP) shoreline relative to a specified reference shoreline dataset.  
 
 .. image:: ./support_files/Gui.png
