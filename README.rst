@@ -3,7 +3,7 @@ CUSP Ruler
 
 CUSP Ruler is a NOAA Remote Sensing Division ArcPro tool that calculates the length of Continually Updated Shoreline Product (CUSP) shoreline relative to a specified reference shoreline dataset.  
 
-# GUI
+#GUI
 
 CUSP Ruler has three inputs:
 
@@ -13,6 +13,6 @@ CUSP Ruler has three inputs:
 
 .. image:: ./support_files/gui.png
 
-# Basic Workflow
+#Basic Workflow
 
 .. image:: ./support_files/CUSP_Overview_Map.png
