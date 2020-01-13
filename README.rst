@@ -7,7 +7,7 @@ GUI
 ===
 
 - *Reference Shoreline*:  feature class containing reference shoreline
-- *CUSP**:  feature class containing CUSP
+- *CUSP*:  feature class containing CUSP
 - *Output Directory*:  output directory where results table and products will be generated
 
 .. image:: ./support_files/gui.png
