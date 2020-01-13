@@ -198,9 +198,10 @@ if __name__ == '__main__':
         layer = 'CUSP_{}_buffered'.format(region_id)
         cusp_buffer_gdf.to_file(cusp_gpkg, layer=layer, driver='GPKG')
 
-        arcpy.AddMessage('\nclipping reference shoreline with simplified CUSP buffers...')  # TODO: taking long time
+        arcpy.AddMessage('\nclipping reference shoreline with simplified CUSP buffers...')
         ref_clipped = ref.copy()
         ref_clipped.geometry = ref.intersection(cusp_simp_buff)
+
         arcpy.AddMessage('(measuring geodesic lengths...)')
         geodesic_lengths = [calc_line_length(g) for g in ref_clipped['geometry']]
         ref_clipped['km_mapped'] = geodesic_lengths
