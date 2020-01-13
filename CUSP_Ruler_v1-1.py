@@ -3,12 +3,11 @@ import json
 from datetime import datetime
 from pathlib import Path
 from functools import partial
-import tkinter as tk
-from tkinter import filedialog
 import numpy as np
 import pandas as pd
 import geopandas as gpd
 import pyproj
+import arcpy
 from shapely.ops import transform, unary_union
 from cartopy.geodesic import Geodesic
 
@@ -35,34 +34,26 @@ def print_region_header(region, sep):
     sep2_num = int(width - len(region) - sep1_num)
     sep1 = sep * sep1_num
     sep2 = sep * sep2_num
-    print('\n{}{}{}'.format(sep1, region.upper(), sep2))    
+    arcpy.AddMessage('\n{}{}{}'.format(sep1, region.upper(), sep2))    
 
 
-def define_args(config):
-    reference_gdb_default = config['reference_gdb']
-    reference_gdb = Path(
-        filedialog.askdirectory(initialdir=reference_gdb_default, 
-                                title='Select Reference Shoreline Geodatabase'))
+def define_args(config, arc_params):
+    ref_shoreline = Path(str(arc_params[0].value))
+    cusp_shoreling = Path(str(arc_params[1].value))
+    out_dir = Path(str(arc_params[2].value))
 
-    reference = reference_gdb / 'Whole_US'
-    
-    cups_gdb_default = config['cusp_gdb']
-    cusp_gdb = Path(filedialog.askdirectory(initialdir=cups_gdb_default, 
-                                            title='Select CUSP Geodatabase'))
-    cusp = cusp_gdb / 'shoreline'
-    
-    out_dir_default = config['output_dir']
-    out_dir = Path(filedialog.askdirectory(initialdir=out_dir_default,
-                                           title='Select Output Directory'))
+    #reference_gdb_default = config['reference_gdb']    
+    #cups_gdb_default = config['cusp_gdb']
+    #out_dir_default = config['output_dir']
     
     simp = 0.002  # degrees
     buff = 500  # meters
 
-    return reference, cusp, out_dir, simp, buff
+    return ref_shoreline, cusp_shoreling, out_dir, simp, buff
 
 
 def print_splash():
-    splash = r"""    
+    splash = r"""
     ==================================================================
                        NOAA Remote Sensing Division's
       _____ _    _  _____ _____    _____  _    _ _      ______ _____  
@@ -76,7 +67,7 @@ def print_splash():
     ==================================================================
     """
 
-    print(splash)
+    arcpy.AddMessage(splash)
 
 
 def lat_lon_buffer(line, radius):
@@ -97,14 +88,14 @@ def lat_lon_buffer(line, radius):
             transformed_buffer = _transformed_buffer
         return transformed_buffer
     except Exception as e:
-        print(r'GEOMETRY ERROR: polygon will be excluded from analysis')
-        print(transformed_buffer)
+        arcpy.AddMessage(r'GEOMETRY ERROR: polygon will be excluded from analysis')
+        arcpy.AddMessage(transformed_buffer)
 
 
 def buffer_lat_lon_multiline(multiline, radius):
-    print('(buffering line segments...)')
+    arcpy.AddMessage('(buffering line segments...)')
     buffers = [lat_lon_buffer(line, radius) for line in multiline]
-    print('(creating union of buffered line segments...)')
+    arcpy.AddMessage('(creating union of buffered line segments...)')
     return unary_union([b for b in buffers if b])
 
 
@@ -127,7 +118,7 @@ def format_output_file(output_file):
         with open(output_file, 'r') as old_f:
             for line in old_f:
                 new_line = line.rstrip() + ';' + os.linesep
-                print(new_line)
+                arcpy.AddMessage(new_line)
                 new_f.write(new_line)
     os.remove(output_file)
     os.rename(temp_file, output_file)
@@ -155,24 +146,22 @@ if __name__ == '__main__':
     cusp_ruler_dir = Path(os.path.dirname(os.path.realpath(__file__)))
     default_paths_path = cusp_ruler_dir / 'default_paths.txt'
 
-    root = tk.Tk()
-    root.withdraw()
-
     geod = Geodesic()
 
     default_paths = load_default_paths(default_paths_path)
-    reference, cusp, out_dir, simp, buff = define_args(default_paths)
+    arc_params = arcpy.GetParameterInfo()
+    reference, cusp, out_dir, simp, buff = define_args(default_paths, arc_params)
     save_config(reference, cusp, out_dir, default_paths_path)
     env_name = 'cusp'
     set_env_vars(env_name)
 
     wgs84_epsg = {'init': 'epsg:4326'}
     
-    print('reading {}...'.format(reference))
+    arcpy.AddMessage('reading {}...'.format(reference))
     ref_gdb = str(reference.parent)
     ref_gdf = gpd.read_file(ref_gdb, layer=reference.name).to_crs(wgs84_epsg)
 
-    print('reading {}...'.format(cusp))
+    arcpy.AddMessage('reading {}...'.format(cusp))
     cusp_gdb = str(cusp.parent)
     cusp_layer = cusp.name
     cusp_gdf = gpd.read_file(cusp_gdb, layer=cusp_layer, crs=wgs84_epsg)
@@ -181,43 +170,42 @@ if __name__ == '__main__':
     rounding = {'StateLeng': 0, 'ClippedLeng': 0, 'Percentage': 2}
     types = {'StateLeng': 'int64', 'ClippedLeng': 'int64'}
 
-    for region in cusp_gdf.NOAA_Regio.unique():
+    for region in ref_gdf.NOAA_REGIO.unique():
         region_id = ''.join([c.capitalize() for c in region.split(' ')])
         cusp_gpkg = out_dir / 'CUSP_{}.gpkg'.format(region_id)
         cusp_shp = out_dir / 'CUSP_{}.shp'.format(region_id)
         print_region_header(region, '-')
-        print('extracting CUSP data...')
+        arcpy.AddMessage('extracting CUSP data...')
         cusp = cusp_gdf[cusp_gdf.NOAA_Regio == region]
 
-        print('\nextracting reference shoreline...')
+        arcpy.AddMessage('\nextracting reference shoreline...')
         ref = ref_gdf[ref_gdf.NOAA_REGIO == region].copy()
-        print('(measuring geodesic lengths...)')
+        arcpy.AddMessage('(measuring geodesic lengths...)')
         geodesic_lengths = [calc_line_length(g) for g in ref['geometry']]
         ref['km_total'] = geodesic_lengths
 
-        print('\nsimplifying CUSP data...')
-        cusp_simp = cusp.copy()
-        cusp_simp['geometry'] = cusp.geometry.simplify(tolerance=simp,
-                                                       preserve_topology=True)
-        print('(saving to geopackage...)')
+        arcpy.AddMessage('\nsimplifying CUSP data...')
+        cusp['geometry'] = cusp.geometry.simplify(tolerance=simp,
+                                                  preserve_topology=False)
+        arcpy.AddMessage('(saving to geopackage...)')
         layer = 'CUSP_{}_simplified'.format(region_id)
-        cusp_simp['geometry'].to_file(cusp_gpkg, layer=layer, driver='GPKG')
+        cusp['geometry'].to_file(cusp_gpkg, layer=layer, driver='GPKG')
 
-        print('\nbuffering simplified CUSP data...')
-        cusp_simp_buff = buffer_lat_lon_multiline(cusp_simp.geometry, buff)
+        arcpy.AddMessage('\nbuffering simplified CUSP data...')
+        cusp_simp_buff = buffer_lat_lon_multiline(cusp.geometry, buff)
         cusp_buffer_gdf = gpd.GeoDataFrame(geometry=[cusp_simp_buff]).explode()
-        print('(saving to geopackage...)')
+        arcpy.AddMessage('(saving to geopackage...)')
         layer = 'CUSP_{}_buffered'.format(region_id)
         cusp_buffer_gdf.to_file(cusp_gpkg, layer=layer, driver='GPKG')
 
-        print('\nclipping reference shoreline with simplified CUSP buffers...')
+        arcpy.AddMessage('\nclipping reference shoreline with simplified CUSP buffers...')  # TODO: taking long time
         ref_clipped = ref.copy()
         ref_clipped.geometry = ref.intersection(cusp_simp_buff)
-        print('(measuring geodesic lengths...)')
+        arcpy.AddMessage('(measuring geodesic lengths...)')
         geodesic_lengths = [calc_line_length(g) for g in ref_clipped['geometry']]
         ref_clipped['km_mapped'] = geodesic_lengths
 
-        print('\nsumming regional stats...')
+        arcpy.AddMessage('\nsumming regional stats...')
         ref_lengths = ref.groupby('State')['km_total'].sum()
         ref_clipped_lengths = ref_clipped.groupby('State')['km_mapped'].sum()
 
@@ -228,14 +216,14 @@ if __name__ == '__main__':
 
         df.index.names = ['stateName']
         col_order = ['noaaRegion', 'ClippedLeng', 'StateLeng', 'Percentage']
-        print(df[col_order].round(rounding).astype(types))
+        arcpy.AddMessage(df[col_order].round(rounding).astype(types))
         results.append(df[col_order])
 
     results_df = pd.concat(results).round(rounding).astype(types)
     print_region_header('ALL PROCESSED REGIONS', '=')
-    print(results_df)
+    arcpy.AddMessage(results_df)
 
     output_file = '{}\CUSP_Progress.txt'.format(out_dir)
     results_df.to_csv(output_file, sep=',')
     format_output_file(output_file)
-    print('TOTAL TIME: {}'.format(datetime.now() - tic))
+    arcpy.AddMessage('TOTAL TIME: {}'.format(datetime.now() - tic))
