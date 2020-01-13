@@ -24,11 +24,13 @@ The CUSP Ruler workflow has four main steps:
 
 1.  Generalize the CUSP datashet
 ++++++++++++++++++++++++++++++++
-The CUSP dataset is generalized to computationaly simplify the proceeding steps.  The Geopandas simplify algorithm is used, with a tolerance of 0.002 (degress) and perserve_topology=False.
+The CUSP dataset is generalized to computationaly simplify the proceeding steps.  The Geopandas simplify algorithm is used, with a tolerance of 0.002 (degrees) and perserve_topology=False.
 
 2. Buffer the generalized CUSP datashet
 +++++++++++++++++++++++++++++++++++++++
 The CUSP data are buffered as way to determine which reference shoreline segments the CUSP corresponds to.  The reference shoreline segments intersecting the CUSP buffer are considered to correspsond to the associated CUSP.  The simplified CUSP are buffered using the shapely buffer method, with each line segment transformed to a local azimuthal equidistand projection.
+
+
 
 3. Clip reference shoreline with CUSP buffer
 ++++++++++++++++++++++++++++++++++++++++++++
