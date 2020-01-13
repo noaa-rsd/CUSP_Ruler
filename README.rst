@@ -44,12 +44,12 @@ The geodesic lengths of the clipped reference shoreline segments are calcualted 
 Output
 ======
 
-The main output is an ascii table summarizing the kilometers of CUSP per NOAA region, divided by state.  The summary table has five columns:
+The main output is an ASCII table summarizing the kilometers of CUSP per NOAA region, divided by state.  The summary table has five columns:
 
 - **stateName:** state abbreviation
 - **noaaRegion:** NOAA region
-- **ClippedLeng:** the length of reference shoreline corresponding to CUSP
-- **StateLeng:** the total length of reference shoreline
+- **ClippedLeng:** the length of reference shoreline corresponding to CUSP (km)
+- **StateLeng:** the total length of reference shoreline (km)
 - **Percentage:** the percentage of reference shoreline with corresponding CUSP
 
 *Example Summary Table (partial)* (the spacing between lines is intentional)
@@ -77,9 +77,6 @@ The main output is an ascii table summarizing the kilometers of CUSP per NOAA re
 
   DE,North Atlantic,1378,1619,0.85;
 
-
-
-
-- 
+Secondary outputs include the simplified CUSP and corresponding buffer (see example below).
 
 .. image:: ./support_files/CUSP_ouput.png
