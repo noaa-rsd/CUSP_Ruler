@@ -9,17 +9,15 @@ Continually Updated Shoreline Product (CUSP) Coverage as of October 2019.
 GUI
 ===
 
+CUSP Ruler has three inputs.
+
 =====================   ===================================================================
-A                       B   
+INPUT                   DESCRIPTION
 =====================   ===================================================================
 *Reference Shoreline*   feature class containing reference shoreline 
 *CUSP*                  feature class containing CUSP  
 *Output Directory*      output directory where results table and products will be generated  
 =====================   ===================================================================
-
-- *Reference Shoreline*:  feature class containing reference shoreline
-- *CUSP*:  feature class containing CUSP
-- *Output Directory*:  output directory where results table and products will be generated
 
 .. image:: ./support_files/gui.png
 
@@ -57,13 +55,17 @@ Output
 
 The main output is an ASCII table summarizing the kilometers of CUSP per NOAA region, divided by state.  The summary table has five columns:
 
-- **stateName:** state abbreviation
-- **noaaRegion:** NOAA region
-- **ClippedLeng:** the length of reference shoreline corresponding to CUSP (km)
-- **StateLeng:** the total length of reference shoreline (km)
-- **Percentage:** the percentage of reference shoreline with corresponding CUSP
+=============   =============================================================
+COLUMN          DESCRIPTION
+=============   =============================================================
+*stateName*     state abbreviation
+*noaaRegion*    NOAA region
+*ClippedLeng*   the length of reference shoreline corresponding to CUSP (km)
+*StateLeng*     the total length of reference shoreline (km)
+*Percentage*    the percentage of reference shoreline with corresponding CUSP 
+=============   =============================================================
 
-*Example Summary Table (partial)* (the spacing between lines is intentional)
+*Example Summary Table (partial)*
 ::
 
   stateName,noaaRegion,ClippedLeng,StateLeng,Percentage;    
