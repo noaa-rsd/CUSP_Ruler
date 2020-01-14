@@ -1,3 +1,5 @@
+.. image:: ./support_files/CUSP_RULER_thumbnail.png
+
 CUSP Ruler
 ----------
 
