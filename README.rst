@@ -92,4 +92,5 @@ COLUMN          DESCRIPTION
   DE,North Atlantic,1378,1619,0.85;
 
 Secondary outputs include the simplified CUSP and corresponding buffer (see example below).  The secondary output layers are provided as layers within an OGC geopackage (https://www.geopackage.org/).
+
 .. image:: ./support_files/CUSP_Secondary_Outputs.png
