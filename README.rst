@@ -14,6 +14,8 @@ GUI
 
 CUSP Ruler has three inputs:
 
+.. image:: ./support_files/gui.png
+
 =====================   ===================================================================
 INPUT                   DESCRIPTION
 =====================   ===================================================================
@@ -21,8 +23,6 @@ INPUT                   DESCRIPTION
 *CUSP*                  feature class containing CUSP  
 *Output Directory*      output directory where results table and products will be generated  
 =====================   ===================================================================
-
-.. image:: ./support_files/gui.png
 
 Basic Workflow
 ==============
