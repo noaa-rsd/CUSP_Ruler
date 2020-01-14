@@ -12,10 +12,9 @@ CUSP Ruler is a NOAA Remote Sensing Division ArcPro tool that calculates the len
 GUI
 ===
 
-CUSP Ruler has three inputs:
-
 .. image:: ./support_files/gui.png
 
+CUSP Ruler has three inputs:
 =====================   ===================================================================
 INPUT                   DESCRIPTION
 =====================   ===================================================================
