@@ -29,10 +29,7 @@ Basic Workflow
 
 The CUSP Ruler workflow has four main steps:
 
-1. Generalize the CUSP datashet
-2. Buffer the generalized CUSP datashet
-3. Clip reference shoreline with CUSP buffer
-4. Measure geodesic lengths of clipped reference shoreline
+.. image:: ./support_files/CUSP_Ruler_WORKFLOW.png
 
 1.  Generalize the CUSP datashet
 ++++++++++++++++++++++++++++++++
