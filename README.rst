@@ -1,3 +1,5 @@
+.. image:: ./support_files/CUSP_RULER_thumbnail.png
+
 CUSP Ruler
 ----------
 
@@ -38,10 +40,9 @@ The CUSP dataset is generalized to computationaly simplify the proceeding steps.
 
 2. Buffer the generalized CUSP datashet
 +++++++++++++++++++++++++++++++++++++++
-The CUSP data are buffered as way to determine which reference shoreline segments correspond to the CUSP data.  The reference shoreline segments intersecting the CUSP buffer are considered to correspsond to the associated CUSP.  To preserve distances during the buffereing process, the simplified CUSP data are buffered (using the shapely buffer method) with each line segment transformed to a local azimuthal equidistant projection.
+The CUSP data are buffered way to determine which reference shoreline segments correspond to the CUSP data.  The reference shoreline segments intersecting the CUSP buffer are considered to correspsond to CUSP.  To preserve distances during the buffering process, the simplified CUSP data are buffered (using the shapely buffer method) with each line segment transformed to a local azimuthal equidistant projection.  
 
-.. note::
-  Applying a local azimuthal equidistant projection to each line might be unnecessay.  Future development plans include looking at appling a local azimuthal equidistant projection on a regional basis.
+NOTE:  Applying a local azimuthal equidistant projection to each line might be unnecessay.  Future development plans include looking at appling a local azimuthal equidistant projection on a regional basis.
 
 3. Clip reference shoreline with CUSP buffer
 ++++++++++++++++++++++++++++++++++++++++++++
@@ -91,6 +92,6 @@ COLUMN          DESCRIPTION
 
   DE,North Atlantic,1378,1619,0.85;
 
-Secondary outputs include the simplified CUSP and corresponding buffer (see example below).  The secondary output layers are provided as layers within an OGC geopackage (https://www.geopackage.org/). 
+Secondary outputs include the simplified CUSP and corresponding buffer (see example below).  The secondary output layers are provided as layers within an OGC geopackage (https://www.geopackage.org/).
 
 .. image:: ./support_files/CUSP_Secondary_Outputs.png
