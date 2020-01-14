@@ -35,7 +35,7 @@ The CUSP data are buffered as way to determine which reference shoreline segment
 
 3. Clip reference shoreline with CUSP buffer
 ++++++++++++++++++++++++++++++++++++++++++++
-The reference shoreline are clipped with the CUSP buffer using the Geopandas intersecion method.
+The reference shoreline is clipped with the CUSP buffer using the Geopandas intersecion method.
 
 4. Measure geodesic lengths of clipped reference shoreline
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
