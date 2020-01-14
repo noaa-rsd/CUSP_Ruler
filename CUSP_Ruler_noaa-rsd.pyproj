@@ -23,7 +23,7 @@
     <Content Include="default_paths.txt" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CUSP_Ruler_v1-1.py" />
+    <Compile Include="CUSP_Ruler.py" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|cusp" />
