@@ -34,6 +34,9 @@ The CUSP Ruler workflow has four main steps:
 
 1.  Generalize the CUSP datashet
 ++++++++++++++++++++++++++++++++
+
+::
+
 The CUSP dataset is generalized to computationaly simplify the proceeding steps.  The Geopandas simplify algorithm is used, with a tolerance of 0.002 (degrees) and perserve_topology=False.
 
 2. Buffer the generalized CUSP datashet
