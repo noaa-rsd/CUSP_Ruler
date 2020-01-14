@@ -38,7 +38,7 @@ The CUSP dataset is generalized to computationaly simplify the proceeding steps.
 
 2. Buffer the generalized CUSP datashet
 +++++++++++++++++++++++++++++++++++++++
-The CUSP data are buffered as way to determine which reference shoreline segments correspond to the CUSP data.  The reference shoreline segments intersecting the CUSP buffer are considered to correspsond to CUSP.  To preserve distances during the buffering process, the simplified CUSP data are buffered (using the shapely buffer method) with each line segment transformed to a local azimuthal equidistant projection.  
+The CUSP data are buffered way to determine which reference shoreline segments correspond to the CUSP data.  The reference shoreline segments intersecting the CUSP buffer are considered to correspsond to CUSP.  To preserve distances during the buffering process, the simplified CUSP data are buffered (using the shapely buffer method) with each line segment transformed to a local azimuthal equidistant projection.  
 
 NOTE:  Applying a local azimuthal equidistant projection to each line might be unnecessay.  Future development plans include looking at appling a local azimuthal equidistant projection on a regional basis.
 
