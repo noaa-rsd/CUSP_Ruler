@@ -9,16 +9,13 @@ Continually Updated Shoreline Product (CUSP) Coverage as of October 2019.
 GUI
 ===
 
-=====  =====  ======
-   Inputs     Output
-------------  ------
-  A      B    A or B
-=====  =====  ======
-False  False  False
-True   False  True
-False  True   True
-True   True   True
-=====  =====  ======
+=====  =====
+  A      B   
+=====  =====
+*Reference Shoreline*  feature class containing reference shoreline 
+*CUSP*   feature class containing CUSP  
+*Output Directory*  output directory where results table and products will be generated  
+=====  ===== 
 
 - *Reference Shoreline*:  feature class containing reference shoreline
 - *CUSP*:  feature class containing CUSP
