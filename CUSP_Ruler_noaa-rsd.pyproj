@@ -5,8 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{ab6da044-441e-4e47-acdd-6395daead051}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>
-    </StartupFile>
+    <StartupFile>CUSP_Progress.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -23,6 +22,9 @@
     <Content Include="default_paths.txt" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CUSP_Progress.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="CUSP_Ruler.py" />
   </ItemGroup>
   <ItemGroup>
