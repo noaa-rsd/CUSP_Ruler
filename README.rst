@@ -37,7 +37,7 @@ The CUSP dataset is generalized to computationaly simplify the proceeding steps.
 
 2. Buffer the generalized CUSP datashet
 +++++++++++++++++++++++++++++++++++++++
-The CUSP data are buffered way to determine which reference shoreline segments correspond to the CUSP data.  The reference shoreline segments intersecting the CUSP buffer are considered to correspsond to CUSP.  To preserve distances during the buffering process, the simplified CUSP data are buffered (using the shapely buffer method) with each line segment transformed to a local azimuthal equidistant projection.  
+The CUSP data are buffered as a way to determine which reference shoreline segments correspond to the CUSP data.  The reference shoreline segments intersecting the CUSP buffer are considered to correspsond to CUSP.  To preserve distances during the buffering process, the simplified CUSP data are buffered (using the shapely buffer method) with each line segment transformed to a local azimuthal equidistant projection.  
 
 NOTE:  Applying a local azimuthal equidistant projection to each line might be unnecessay.  Future development plans include looking at appling a local azimuthal equidistant projection on a regional basis.
 
@@ -52,7 +52,7 @@ The geodesic lengths of the clipped reference shoreline segments are calcualted 
 Output
 ======
 
-The main output is an ASCII table summarizing the kilometers of CUSP per NOAA region, divided by state.  The summary table has five columns:
+The main output is an ASCII table summarizing the kilometers of CUSP per NOAA region, per state by state.  The summary table has five columns:
 
 =============   =============================================================
 COLUMN          DESCRIPTION
