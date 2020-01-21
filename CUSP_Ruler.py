@@ -28,8 +28,7 @@ def set_env_vars(env_name):
     os.environ["PROJ_LIB"] = str(proj_lib_path)
 
 
-def print_region_header(region, sep):
-    width = 54
+def print_region_header(region, sep, width):
     sep1_num = int(width / 2 - int(len(region) / 2))
     sep2_num = int(width - len(region) - sep1_num)
     sep1 = sep * sep1_num
@@ -142,7 +141,7 @@ if __name__ == '__main__':
 
     cusp_ruler_dir = Path(os.path.dirname(os.path.realpath(__file__)))
     os.chdir(cusp_ruler_dir)
-    defaults_path = cusp_ruler_dir / 'default_paths.txt'
+    defaults_path = cusp_ruler_dir / 'defaults.txt'
 
     geod = Geodesic()
 
@@ -151,7 +150,7 @@ if __name__ == '__main__':
     reference, cusp_paths, data_sources, out_dir, simp, buff_radius = get_args(arc_params)
     save_config(reference, cusp_paths, data_sources, out_dir, simp, buff_radius)
 
-    support_dir = Path(r'../')
+    support_dir = Path(r'./support_files')
     support_gpkg = support_dir / 'buffer_blocks.gpkg'
 
     env_name = 'shorex2'
@@ -179,10 +178,12 @@ if __name__ == '__main__':
         cusp_dataset = cusp_gdb.split('\\')[-1]
         cusp_layer = cusp_path.name
 
-        print_region_header(cusp_dataset, '*')
+        print_region_header(cusp_dataset, '*', 100)
 
         arcpy.AddMessage(f'reading {str(cusp_path)}...')
         cusp_gdf = gpd.read_file(cusp_gdb, layer=cusp_layer, crs=wgs84_epsg)
+
+        cusp_gpkg = out_dir / 'CUSP_{}.gpkg'.format(cusp_dataset)
 
         if data_sources == 'GC & DM':
             gc_idx = cusp_gdf.SOURCE_ID.str[0:2] == 'GC'
@@ -191,8 +192,7 @@ if __name__ == '__main__':
 
         for region in cusp_gdf.NOAA_Regio.unique()[0:1]:
             region_id = ''.join([c.capitalize() for c in region.split(' ')])
-            cusp_gpkg = out_dir / 'CUSP_{}.gpkg'.format(region_id)
-            print_region_header(region, '-')
+            print_region_header(region, '-', 75)
             arcpy.AddMessage('extracting CUSP data...')
             cusp = cusp_gdf[cusp_gdf.NOAA_Regio == region]
 
@@ -255,7 +255,7 @@ if __name__ == '__main__':
             results.append(df[col_order])
 
         results_df = pd.concat(results).round(rounding).astype(types)
-        print_region_header('ALL PROCESSED REGIONS', '=')
+        print_region_header('ALL PROCESSED REGIONS', '=', 100)
         arcpy.AddMessage(results_df)
 
         run_datetime = datetime.now()
