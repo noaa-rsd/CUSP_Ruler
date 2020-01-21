@@ -9,6 +9,20 @@ CUSP Ruler is a NOAA Remote Sensing Division ArcPro tool that calculates the len
 
 .. image:: ./support_files/CUSP_Overview_Map.png
 
+Installation
+============
+
+Installing CUSP Ruler consists of 2 main steps:
+
+1. create/configure ArcPro Python environment
+2. obtain/load CUSP Ruler toolbox
+
+1. create/configure ArcPro Python environment
+*********************************************
+
+2. obtain/load CUSP Ruler toolbox
+*********************************
+
 GUI
 ===
 
