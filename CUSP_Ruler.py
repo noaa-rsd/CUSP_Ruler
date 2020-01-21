@@ -152,7 +152,7 @@ if __name__ == '__main__':
     save_config(reference, cusp_paths, data_sources, out_dir, simp, buff_radius)
 
     support_dir = Path(r'../')
-    support_gpkg = support_dir / 'CUSP_Ruler.gpkg'
+    support_gpkg = support_dir / 'buffer_blocks.gpkg'
 
     env_name = 'shorex2'
     set_env_vars(env_name)
