@@ -18,10 +18,10 @@ Installing CUSP Ruler consists of 2 main steps:
 2. obtain/load CUSP Ruler toolbox
 
 1. create/configure ArcPro Python environment
-*********************************************
++++++++++++++++++++++++++++++++++++++++++++++
 
 2. obtain/load CUSP Ruler toolbox
-*********************************
++++++++++++++++++++++++++++++++++
 
 GUI
 ===
