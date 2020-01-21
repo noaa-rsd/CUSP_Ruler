@@ -111,7 +111,6 @@ def format_output_file(output_file):
         with open(output_file, 'r') as old_f:
             for line in old_f:
                 new_line = line.rstrip() + ';' + os.linesep
-                arcpy.AddMessage(new_line)
                 new_f.write(new_line)
     os.remove(output_file)
     os.rename(temp_file, output_file)
@@ -172,25 +171,27 @@ if __name__ == '__main__':
     types = {'StateLeng': 'int64', 'ClippedLeng': 'int64'}
     
     cols_to_drop = ['level_0', 'level_1']  # artifacts from explode()
+    date_txt = f'{datetime.now():%m%d%Y}'
 
     for cusp_path in cusp_paths:
-        cusp_gdb = str(cusp_path.parent)
-        cusp_dataset = cusp_gdb.split('\\')[-1]
+        cusp_gdb_path = str(cusp_path.parent)
+        cusp_gdb_name = cusp_path.parts[-2]
+        cusp_basename = cusp_gdb_name.replace('.gdb', '')
         cusp_layer = cusp_path.name
 
-        print_region_header(cusp_dataset, '*', 100)
+        print_region_header(cusp_gdb_name, '*', 100)
 
         arcpy.AddMessage(f'reading {str(cusp_path)}...')
-        cusp_gdf = gpd.read_file(cusp_gdb, layer=cusp_layer, crs=wgs84_epsg)
+        cusp_gdf = gpd.read_file(cusp_gdb_path, layer=cusp_layer, crs=wgs84_epsg)
 
-        cusp_gpkg = out_dir / 'CUSP_{}.gpkg'.format(cusp_dataset)
+        cusp_gpkg = out_dir / f'CUSP_{date_txt}_{cusp_basename}.gpkg'
 
         if data_sources == 'GC & DM':
             gc_idx = cusp_gdf.SOURCE_ID.str[0:2] == 'GC'
             dm_idx = cusp_gdf.SOURCE_ID.str[0:2] == 'DM'
             cusp_gdf = cusp_gdf[gc_idx | dm_idx]
 
-        for region in cusp_gdf.NOAA_Regio.unique()[0:1]:
+        for region in cusp_gdf.NOAA_Regio.unique()[0:2]:
             region_id = ''.join([c.capitalize() for c in region.split(' ')])
             print_region_header(region, '-', 75)
             arcpy.AddMessage('extracting CUSP data...')
@@ -204,7 +205,7 @@ if __name__ == '__main__':
             arcpy.AddMessage('\nsimplifying CUSP data...')
             cusp['geometry'] = cusp.geometry.simplify(tolerance=simp,
                                                       preserve_topology=False)
-            layer = '{}_CUSP_{}_simplified'.format(cusp_layer, region_id)
+            layer = f'CUSP_{region_id}_SIMPLIFIED'
             cusp.to_file(cusp_gpkg, layer=layer, driver='GPKG')
 
             arcpy.AddMessage('\nbuffering CUSP data...')
@@ -216,7 +217,7 @@ if __name__ == '__main__':
             bb_gdf = gpd.read_file(str(support_gpkg), layer=layer, crs=wgs84_epsg)
             cusp_buffer_gdf = gpd.overlay(cusp_buffer_gdf, bb_gdf, how='intersection')
 
-            layer = '{}_CUSP_{}_buffered'.format(cusp_layer, region_id)
+            layer = f'CUSP_{region_id}_BUFFER'
             cusp_buffer_gdf.to_file(cusp_gpkg, layer=layer, driver='GPKG')
 
             arcpy.AddMessage('\nclipping reference shoreline with CUSP buffers...')
@@ -258,15 +259,14 @@ if __name__ == '__main__':
         print_region_header('ALL PROCESSED REGIONS', '=', 100)
         arcpy.AddMessage(results_df)
 
-        run_datetime = datetime.now()
-        output_path = f'{out_dir}\CUSP_Progress_{run_datetime:%m%d%Y}.txt'
+        output_path = str(cusp_gpkg).replace('.gpkg', '.txt')
         results_df.to_csv(output_path, sep=',')
         format_output_file(output_path)
 
         arcpy.AddMessage('creating CUSP Ruler metadata file...')
         meta_path = str(output_path).replace('.txt', '.meta')
         with open(meta_path, 'w') as f:
-            json.dump(f, default_paths, indent=1)
+            json.dump(default_paths, f, indent=1)
 
     arcpy.AddMessage('TOTAL TIME: {}'.format(datetime.now() - tic))
 
