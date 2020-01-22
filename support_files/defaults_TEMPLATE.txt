@@ -1,0 +1,11 @@
+{
+ "reference_fc": "Z:\\CUSP_Ruler\\CUSP_Ruler.gpkg\\main.ENC_Shoreline_StateRegions",
+ "cusp_fcs": [
+  "None"
+ ],
+ "cusp_txt": "Z:\\CUSP_Ruler\\FiscalYearCUSPs.txt",
+ "data_sources": "GC & DM",
+ "output_dir": "Z:\\CUSP_Ruler\\Results",
+ "simplification": 0.002,
+ "buff_radius": 400
+}

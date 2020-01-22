@@ -31,5 +31,10 @@ for fy, gdb in cusps.items():
     print('opening {}...'.format(out_gdb / layer))
     wgs84_epsg = {'init': 'epsg:4326'}
     cusp_gdf = gpd.read_file(out_gdb, layer=layer, crs=wgs84_epsg)
+    
     print(cusp_gdf.columns)
+    print(cusp_gdf)
+    gc_indices = cusp_gdf.SOURCE_ID.str[0:2] == 'GC'
+    cusp_gdf = cusp_gdf[gc_indices]
+    print(cusp_gdf)
     

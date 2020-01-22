@@ -28,28 +28,24 @@ def set_env_vars(env_name):
     os.environ["PROJ_LIB"] = str(proj_lib_path)
 
 
-def print_region_header(region, sep):
-    width = 54
+def print_region_header(region, sep, width):
     sep1_num = int(width / 2 - int(len(region) / 2))
     sep2_num = int(width - len(region) - sep1_num)
     sep1 = sep * sep1_num
     sep2 = sep * sep2_num
-    arcpy.AddMessage('\n{}{}{}'.format(sep1, region.upper(), sep2))    
+    arcpy.AddMessage('\n{}{}{}'.format(sep1, region, sep2))    
 
 
-def define_args(config, arc_params):
-    ref_shoreline = Path(str(arc_params[0].value))
-    cusp_shoreling = Path(str(arc_params[1].value))
-    out_dir = Path(str(arc_params[2].value))
+def get_args(arc_params):
+    ref_shoreline = str(arc_params[0].value)
+    cusp_fcs = arc_params[1].value
+    cusp_txt = arc_params[2].value
+    data_sources = str(arc_params[3].value)
+    out_dir = str(arc_params[4].value)    
+    simp = float(arc_params[5].value)
+    buff_radius = int(arc_params[6].value)
 
-    #reference_gdb_default = config['reference_gdb']    
-    #cups_gdb_default = config['cusp_gdb']
-    #out_dir_default = config['output_dir']
-    
-    simp = 0.002  # degrees
-    buff = 500  # meters
-
-    return ref_shoreline, cusp_shoreling, out_dir, simp, buff
+    return ref_shoreline, cusp_fcs, cusp_txt, data_sources, out_dir, simp, buff_radius
 
 
 def print_splash():
@@ -63,7 +59,6 @@ def print_splash():
     | |____| |__| |____) | |      | | \ \| |__| | |____| |____| | \ \ 
      \_____|\____/|_____/|_|      |_|  \_\\____/|______|______|_|  \_\
     
-                                   v1.1
     ==================================================================
     """
 
@@ -93,9 +88,7 @@ def lat_lon_buffer(line, radius):
 
 
 def buffer_lat_lon_multiline(multiline, radius):
-    arcpy.AddMessage('(buffering line segments...)')
     buffers = [lat_lon_buffer(line, radius) for line in multiline]
-    arcpy.AddMessage('(creating union of buffered line segments...)')
     return unary_union([b for b in buffers if b])
 
 
@@ -118,25 +111,28 @@ def format_output_file(output_file):
         with open(output_file, 'r') as old_f:
             for line in old_f:
                 new_line = line.rstrip() + ';' + os.linesep
-                arcpy.AddMessage(new_line)
                 new_f.write(new_line)
     os.remove(output_file)
     os.rename(temp_file, output_file)
 
 
-def load_default_paths(default_paths_path):
-    with open(default_paths_path) as f:
+def load_default_paths(defaults_path):
+    with open(defaults_path) as f:
         paths = json.load(f)
     return paths
 
 
-def save_config(reference, cusp, out_dir, default_paths_path):
-    default_paths = {'reference_gdb': str(list(reference.parents)[1]), 
-                     'cusp_gdb': str(list(cusp.parents)[1]),
-                     'output_dir': str(list(out_dir.parents)[0])}
+def save_config(reference, cusp_fcs, cusp_txt, data_sources, out_dir, simp, buff_radius):
+    default_paths = {'reference_fc': reference, 
+                     'cusp_fcs': cusp_fcs.split(';') if cusp_fcs else None,
+                     'cusp_txt': cusp_txt,
+                     'data_sources': data_sources,
+                     'output_dir': out_dir,
+                     'simplification': simp,
+                     'buff_radius': buff_radius}
 
-    with open(default_paths_path, 'w') as f:
-        json.dump(default_paths, f)
+    with open(defaults_path, 'w') as f:
+        json.dump(default_paths, f, indent=1)
 
 
 if __name__ == '__main__':
@@ -144,87 +140,148 @@ if __name__ == '__main__':
     print_splash()
 
     cusp_ruler_dir = Path(os.path.dirname(os.path.realpath(__file__)))
-    default_paths_path = cusp_ruler_dir / 'default_paths.txt'
+    os.chdir(cusp_ruler_dir)
+    defaults_path = cusp_ruler_dir / 'defaults.txt'
 
     geod = Geodesic()
 
-    default_paths = load_default_paths(default_paths_path)
+    default_paths = load_default_paths(defaults_path)
     arc_params = arcpy.GetParameterInfo()
-    reference, cusp, out_dir, simp, buff = define_args(default_paths, arc_params)
-    save_config(reference, cusp, out_dir, default_paths_path)
-    env_name = 'cusp'
+    reference, cusp_fcs, cusp_txt, data_sources, out_dir, simp, buff_radius = get_args(arc_params)
+    save_config(reference, str(cusp_fcs), str(cusp_txt), data_sources, out_dir, simp, buff_radius)
+
+    support_dir = Path(r'./support_files')
+    support_gpkg = support_dir / 'buffer_blocks.gpkg'
+
+    env_name = 'shorex2'
     set_env_vars(env_name)
 
     wgs84_epsg = {'init': 'epsg:4326'}
     
-    arcpy.AddMessage('reading {}...'.format(reference))
-    ref_gdb = str(reference.parent)
-    ref_gdf = gpd.read_file(ref_gdb, layer=reference.name).to_crs(wgs84_epsg)
+    ref_path = Path(reference)
 
-    arcpy.AddMessage('reading {}...'.format(cusp))
-    cusp_gdb = str(cusp.parent)
-    cusp_layer = cusp.name
-    cusp_gdf = gpd.read_file(cusp_gdb, layer=cusp_layer, crs=wgs84_epsg)
+   
+    def get_cusp_paths(cusp_fcs, cusp_txt):
+        cusps = None
 
-    results = []
+        if cusp_fcs:
+            arcpy.AddMessage('HI')
+            cusps = str(cusp_fcs)
+        elif cusp_txt:
+            with open(str(cusp_txt), 'r') as f:
+                cusps = ';'.join([l.strip() for l in f.readlines()])
+        return cusps
+
+    cusp_path_strs = get_cusp_paths(cusp_fcs, cusp_txt)
+    cusp_paths = [Path(c) for c in cusp_path_strs.split(';')]
+    out_dir = Path(out_dir)
+
+    arcpy.AddMessage(f'reading {str(ref_path)}...')
+    ref_gdb = str(ref_path.parent)
+    layer = ref_path.name.replace('main.', '')  # geopackage puts 'main.' in layer name
+    ref_gdf = gpd.read_file(ref_gdb, layer=layer).to_crs(wgs84_epsg)
+
     rounding = {'StateLeng': 0, 'ClippedLeng': 0, 'Percentage': 2}
     types = {'StateLeng': 'int64', 'ClippedLeng': 'int64'}
+    
+    cols_to_drop = ['level_0', 'level_1']  # artifacts from explode()
+    date_txt = f'{datetime.now():%m%d%Y}'
 
-    for region in ref_gdf.NOAA_REGIO.unique():
-        region_id = ''.join([c.capitalize() for c in region.split(' ')])
-        cusp_gpkg = out_dir / 'CUSP_{}.gpkg'.format(region_id)
-        cusp_shp = out_dir / 'CUSP_{}.shp'.format(region_id)
-        print_region_header(region, '-')
-        arcpy.AddMessage('extracting CUSP data...')
-        cusp = cusp_gdf[cusp_gdf.NOAA_Regio == region]
+    for cusp_path in cusp_paths:
+        results = []
 
-        arcpy.AddMessage('\nextracting reference shoreline...')
-        ref = ref_gdf[ref_gdf.NOAA_REGIO == region].copy()
-        arcpy.AddMessage('(measuring geodesic lengths...)')
-        geodesic_lengths = [calc_line_length(g) for g in ref['geometry']]
-        ref['km_total'] = geodesic_lengths
+        cusp_gdb_path = str(cusp_path.parent)
+        cusp_gdb_name = cusp_path.parts[-2]
+        cusp_basename = cusp_gdb_name.replace('.gdb', '')
+        cusp_layer = cusp_path.name
 
-        arcpy.AddMessage('\nsimplifying CUSP data...')
-        cusp['geometry'] = cusp.geometry.simplify(tolerance=simp,
-                                                  preserve_topology=False)
-        arcpy.AddMessage('(saving to geopackage...)')
-        layer = 'CUSP_{}_simplified'.format(region_id)
-        cusp['geometry'].to_file(cusp_gpkg, layer=layer, driver='GPKG')
+        print_region_header(cusp_gdb_name, '*', 100)
 
-        arcpy.AddMessage('\nbuffering simplified CUSP data...')
-        cusp_simp_buff = buffer_lat_lon_multiline(cusp.geometry, buff)
-        cusp_buffer_gdf = gpd.GeoDataFrame(geometry=[cusp_simp_buff]).explode()
-        arcpy.AddMessage('(saving to geopackage...)')
-        layer = 'CUSP_{}_buffered'.format(region_id)
-        cusp_buffer_gdf.to_file(cusp_gpkg, layer=layer, driver='GPKG')
+        arcpy.AddMessage(f'reading {str(cusp_path)}...')
+        cusp_gdf = gpd.read_file(cusp_gdb_path, layer=cusp_layer, crs=wgs84_epsg)
 
-        arcpy.AddMessage('\nclipping reference shoreline with simplified CUSP buffers...')
-        ref_clipped = ref.copy()
-        ref_clipped.geometry = ref.intersection(cusp_simp_buff)
+        cusp_gpkg = out_dir / f'CUSP_{date_txt}_{cusp_basename}.gpkg'
 
-        arcpy.AddMessage('(measuring geodesic lengths...)')
-        geodesic_lengths = [calc_line_length(g) for g in ref_clipped['geometry']]
-        ref_clipped['km_mapped'] = geodesic_lengths
+        if data_sources == 'GC & DM':
+            gc_idx = cusp_gdf.SOURCE_ID.str[0:2] == 'GC'
+            dm_idx = cusp_gdf.SOURCE_ID.str[0:2] == 'DM'
+            cusp_gdf = cusp_gdf[gc_idx | dm_idx]
 
-        arcpy.AddMessage('\nsumming regional stats...')
-        ref_lengths = ref.groupby('State')['km_total'].sum()
-        ref_clipped_lengths = ref_clipped.groupby('State')['km_mapped'].sum()
+        #for region in cusp_gdf.NOAA_Regio.unique()[0:2]:
+        for region in ['Alaska']:
+            region_id = ''.join([c.capitalize() for c in region.split(' ')])
+            print_region_header(region, '-', 75)
+            arcpy.AddMessage('extracting CUSP data...')
+            cusp = cusp_gdf[cusp_gdf.NOAA_Regio == region]
 
-        df = pd.DataFrame({'StateLeng': ref_lengths / 1000,
-                           'ClippedLeng': ref_clipped_lengths / 1000,
-                           'Percentage': ref_clipped_lengths / ref_lengths,
-                           'noaaRegion': [region] * ref_lengths.shape[0]})
+            arcpy.AddMessage('\nextracting reference shoreline...')
+            ref = ref_gdf[ref_gdf.NOAA_REGIO == region].copy()
+            geodesic_lengths = [calc_line_length(g) for g in ref['geometry']]
+            ref['km_total'] = geodesic_lengths
 
-        df.index.names = ['stateName']
-        col_order = ['noaaRegion', 'ClippedLeng', 'StateLeng', 'Percentage']
-        arcpy.AddMessage(df[col_order].round(rounding).astype(types))
-        results.append(df[col_order])
+            arcpy.AddMessage('\nsimplifying CUSP data...')
+            cusp['geometry'] = cusp.geometry.simplify(tolerance=simp,
+                                                      preserve_topology=False)
+            layer = f'CUSP_{region_id}_SIMPLIFIED'
+            cusp.to_file(cusp_gpkg, layer=layer, driver='GPKG')
 
-    results_df = pd.concat(results).round(rounding).astype(types)
-    print_region_header('ALL PROCESSED REGIONS', '=')
-    arcpy.AddMessage(results_df)
+            arcpy.AddMessage('\nbuffering CUSP data...')
+            cusp_simp_buff = buffer_lat_lon_multiline(cusp.geometry, buff_radius)
+            gdf = gpd.GeoDataFrame(geometry=[cusp_simp_buff], crs=wgs84_epsg)
+            cusp_buffer_gdf = gdf.explode().reset_index().drop(cols_to_drop, axis=1)
 
-    output_file = '{}\CUSP_Progress.txt'.format(out_dir)
-    results_df.to_csv(output_file, sep=',')
-    format_output_file(output_file)
+            layer = 'BufferBlocks'
+            bb_gdf = gpd.read_file(str(support_gpkg), layer=layer, crs=wgs84_epsg)
+            cusp_buffer_gdf = gpd.overlay(cusp_buffer_gdf, bb_gdf, how='intersection')
+
+            layer = f'CUSP_{region_id}_BUFFER'
+            cusp_buffer_gdf.to_file(cusp_gpkg, layer=layer, driver='GPKG')
+
+            arcpy.AddMessage('\nclipping reference shoreline with CUSP buffers...')
+            ref_to_clip = ref.copy()
+            ref_sidx = ref_to_clip.sindex
+
+            refs_clipped = []
+            for buff in cusp_buffer_gdf.geometry:
+                possible_ref_idx = list(ref_sidx.intersection(buff.bounds))
+                possible_ref = ref_to_clip.iloc[possible_ref_idx]
+
+                for j, row in possible_ref.iterrows():
+                    row.geometry = row.geometry.intersection(buff)
+                    refs_clipped.append(row)
+
+            refs_clipped = gpd.GeoDataFrame(refs_clipped, crs=wgs84_epsg)
+
+            geodesic_lengths = [calc_line_length(g) for g in refs_clipped['geometry']]
+            refs_clipped['km_mapped'] = geodesic_lengths
+
+            arcpy.AddMessage('\nsumming regional stats...')
+            ref_lengths = ref.groupby('State')['km_total'].sum()
+            ref_clipped_lengths = refs_clipped.groupby('State')['km_mapped'].sum()
+
+            df = pd.DataFrame({
+                'StateLeng': ref_lengths / 1000,
+                'ClippedLeng': ref_clipped_lengths / 1000,
+                'Percentage': ref_clipped_lengths / ref_lengths,
+                'noaaRegion': [region] * ref_lengths.shape[0],
+                })
+
+            df.index.names = ['stateName']
+            col_order = ['noaaRegion', 'ClippedLeng', 'StateLeng', 'Percentage']
+            arcpy.AddMessage(df[col_order].round(rounding).astype(types))
+            results.append(df[col_order])
+
+        results_df = pd.concat(results).round(rounding).astype(types)
+        print_region_header('ALL PROCESSED REGIONS', '=', 100)
+        arcpy.AddMessage(results_df)
+
+        output_path = str(cusp_gpkg).replace('.gpkg', '.txt')
+        results_df.to_csv(output_path, sep=',')
+        format_output_file(output_path)
+
+        arcpy.AddMessage('creating CUSP Ruler metadata file...')
+        meta_path = str(output_path).replace('.txt', '.meta')
+        with open(meta_path, 'w') as f:
+            json.dump(default_paths, f, indent=1)
+
     arcpy.AddMessage('TOTAL TIME: {}'.format(datetime.now() - tic))
