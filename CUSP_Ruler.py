@@ -135,6 +135,17 @@ def save_config(reference, cusp_fcs, cusp_txt, data_sources, out_dir, simp, buff
         json.dump(default_paths, f, indent=1)
 
 
+def get_cusp_paths(cusp_fcs, cusp_txt):
+    cusps = None
+
+    if cusp_fcs:
+        cusps = str(cusp_fcs)
+    elif cusp_txt:
+        with open(str(cusp_txt), 'r') as f:
+            cusps = ';'.join([l.strip() for l in f.readlines()])
+    return cusps
+
+
 if __name__ == '__main__':
     tic = datetime.now()
     print_splash()
@@ -159,18 +170,6 @@ if __name__ == '__main__':
     wgs84_epsg = {'init': 'epsg:4326'}
     
     ref_path = Path(reference)
-
-   
-    def get_cusp_paths(cusp_fcs, cusp_txt):
-        cusps = None
-
-        if cusp_fcs:
-            arcpy.AddMessage('HI')
-            cusps = str(cusp_fcs)
-        elif cusp_txt:
-            with open(str(cusp_txt), 'r') as f:
-                cusps = ';'.join([l.strip() for l in f.readlines()])
-        return cusps
 
     cusp_path_strs = get_cusp_paths(cusp_fcs, cusp_txt)
     cusp_paths = [Path(c) for c in cusp_path_strs.split(';')]
@@ -233,6 +232,7 @@ if __name__ == '__main__':
             layer = 'BufferBlocks'
             bb_gdf = gpd.read_file(str(support_gpkg), layer=layer, crs=wgs84_epsg)
             cusp_buffer_gdf = gpd.overlay(cusp_buffer_gdf, bb_gdf, how='intersection')
+            cusp_buffer_gdf.geometry = cusp_buffer_gdf.geometry.buffer(0)
 
             layer = f'CUSP_{region_id}_BUFFER'
             cusp_buffer_gdf.to_file(cusp_gpkg, layer=layer, driver='GPKG')
