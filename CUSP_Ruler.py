@@ -38,14 +38,14 @@ def print_region_header(region, sep, width):
 
 def get_args(arc_params):
     ref_shoreline = str(arc_params[0].value)
-    cusps = str(arc_params[1].value)
-    data_sources = str(arc_params[2].value)
-    out_dir = str(arc_params[3].value)
-    
-    simp = 0.002  # degrees
-    buff_radius = 500  # meters
+    cusp_fcs = arc_params[1].value
+    cusp_txt = arc_params[2].value
+    data_sources = str(arc_params[3].value)
+    out_dir = str(arc_params[4].value)    
+    simp = float(arc_params[5].value)
+    buff_radius = int(arc_params[6].value)
 
-    return ref_shoreline, cusps, data_sources, out_dir, simp, buff_radius
+    return ref_shoreline, cusp_fcs, cusp_txt, data_sources, out_dir, simp, buff_radius
 
 
 def print_splash():
@@ -122,9 +122,10 @@ def load_default_paths(defaults_path):
     return paths
 
 
-def save_config(reference, cusp_paths, data_sources, out_dir, simp, buff_radius):
+def save_config(reference, cusp_fcs, cusp_txt, data_sources, out_dir, simp, buff_radius):
     default_paths = {'reference_fc': reference, 
-                     'cusp_fcs': cusp_paths.split(';'),
+                     'cusp_fcs': cusp_fcs.split(';') if cusp_fcs else None,
+                     'cusp_txt': cusp_txt,
                      'data_sources': data_sources,
                      'output_dir': out_dir,
                      'simplification': simp,
@@ -146,8 +147,8 @@ if __name__ == '__main__':
 
     default_paths = load_default_paths(defaults_path)
     arc_params = arcpy.GetParameterInfo()
-    reference, cusp_paths, data_sources, out_dir, simp, buff_radius = get_args(arc_params)
-    save_config(reference, cusp_paths, data_sources, out_dir, simp, buff_radius)
+    reference, cusp_fcs, cusp_txt, data_sources, out_dir, simp, buff_radius = get_args(arc_params)
+    save_config(reference, str(cusp_fcs), str(cusp_txt), data_sources, out_dir, simp, buff_radius)
 
     support_dir = Path(r'./support_files')
     support_gpkg = support_dir / 'buffer_blocks.gpkg'
@@ -158,7 +159,21 @@ if __name__ == '__main__':
     wgs84_epsg = {'init': 'epsg:4326'}
     
     ref_path = Path(reference)
-    cusp_paths = [Path(c) for c in cusp_paths.split(';')]
+
+   
+    def get_cusp_paths(cusp_fcs, cusp_txt):
+        cusps = None
+
+        if cusp_fcs:
+            arcpy.AddMessage('HI')
+            cusps = str(cusp_fcs)
+        elif cusp_txt:
+            with open(str(cusp_txt), 'r') as f:
+                cusps = ';'.join([l.strip() for l in f.readlines()])
+        return cusps
+
+    cusp_path_strs = get_cusp_paths(cusp_fcs, cusp_txt)
+    cusp_paths = [Path(c) for c in cusp_path_strs.split(';')]
     out_dir = Path(out_dir)
 
     arcpy.AddMessage(f'reading {str(ref_path)}...')
@@ -166,7 +181,6 @@ if __name__ == '__main__':
     layer = ref_path.name.replace('main.', '')  # geopackage puts 'main.' in layer name
     ref_gdf = gpd.read_file(ref_gdb, layer=layer).to_crs(wgs84_epsg)
 
-    results = []
     rounding = {'StateLeng': 0, 'ClippedLeng': 0, 'Percentage': 2}
     types = {'StateLeng': 'int64', 'ClippedLeng': 'int64'}
     
@@ -174,6 +188,8 @@ if __name__ == '__main__':
     date_txt = f'{datetime.now():%m%d%Y}'
 
     for cusp_path in cusp_paths:
+        results = []
+
         cusp_gdb_path = str(cusp_path.parent)
         cusp_gdb_name = cusp_path.parts[-2]
         cusp_basename = cusp_gdb_name.replace('.gdb', '')
@@ -191,7 +207,8 @@ if __name__ == '__main__':
             dm_idx = cusp_gdf.SOURCE_ID.str[0:2] == 'DM'
             cusp_gdf = cusp_gdf[gc_idx | dm_idx]
 
-        for region in cusp_gdf.NOAA_Regio.unique()[0:2]:
+        #for region in cusp_gdf.NOAA_Regio.unique()[0:2]:
+        for region in ['Alaska']:
             region_id = ''.join([c.capitalize() for c in region.split(' ')])
             print_region_header(region, '-', 75)
             arcpy.AddMessage('extracting CUSP data...')
@@ -247,7 +264,6 @@ if __name__ == '__main__':
                 'ClippedLeng': ref_clipped_lengths / 1000,
                 'Percentage': ref_clipped_lengths / ref_lengths,
                 'noaaRegion': [region] * ref_lengths.shape[0],
-                #'CUSP': [cusp_dataset] * ref_lengths.shape[0]
                 })
 
             df.index.names = ['stateName']
@@ -269,4 +285,3 @@ if __name__ == '__main__':
             json.dump(default_paths, f, indent=1)
 
     arcpy.AddMessage('TOTAL TIME: {}'.format(datetime.now() - tic))
-
