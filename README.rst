@@ -9,6 +9,46 @@ CUSP Ruler is a NOAA Remote Sensing Division ArcPro tool that calculates the len
 
 .. image:: ./support_files/CUSP_Overview_Map.png
 
+Installation
+============
+
+Installing CUSP Ruler consists of 2 main steps:
+
+1. create/configure ArcPro Python environment
+
+2. obtain/load CUSP Ruler toolbox
+
+1. create/configure ArcPro Python environment
++++++++++++++++++++++++++++++++++++++++++++++
+
+1.1 Clone the default ArcPro Python environment by issueing the following command at an Anaconda prompt:
+::
+
+  conda create --clone C:\\<> --prefix C:\\<>\cusp_ruler
+  
+1.2 Install the Python package Geopandas
+
+First, uninstall the default gdal package with the following command (at the Anaconda prompt):
+::  
+
+  conda uninstall gdal
+  
+Second, install the Geopandas package with the following command (at the Anaconda prompt):
+::
+
+  conda install geopandas
+  
+1.3 Configure ArcPro Python environment
+
+Point ArcPro to the newly created CUSP Ruler Python environment, as shown below:
+
+.. image:: ./support_files/installation.png
+
+2. obtain/load CUSP Ruler toolbox
++++++++++++++++++++++++++++++++++
+
+2.1 
+
 GUI
 ===
 
