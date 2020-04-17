@@ -1,9 +1,9 @@
 {
- "reference_fc": "C:\\Users\\Nick.Forfinski-Sarko\\Documents\\ArcGIS\\Projects\\CUSP_AK\\CUSP_AK.gdb\\ENC_Shoreline_StateRegions",
+ "reference_fc": "C:\\Users\\Nick.Forfinski-Sarko\\Documents\\ArcGIS\\Projects\\CUSP_Ruler\\CUSP_Ruler.gdb\\ENC_Shoreline_StateRegions",
  "cusp_fcs": [
-  "W:\\Versions\\Archive\\20190425_contemporary_shoreline.gdb\\shoreline"
+  "None"
  ],
- "cusp_txt": "None",
+ "cusp_txt": "Z:\\CUSP_Ruler\\FiscalYearCUSPs.txt",
  "data_sources": "GC & DM",
  "output_dir": "Z:\\CUSP_Ruler\\Results",
  "simplification": 0.002,

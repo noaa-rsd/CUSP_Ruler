@@ -164,7 +164,7 @@ if __name__ == '__main__':
     support_dir = Path(r'./support_files')
     support_gpkg = support_dir / 'buffer_blocks.gpkg'
 
-    env_name = 'shorex2'
+    env_name = 'lidog'
     set_env_vars(env_name)
 
     wgs84_epsg = {'init': 'epsg:4326'}
@@ -178,7 +178,7 @@ if __name__ == '__main__':
     arcpy.AddMessage(f'reading {str(ref_path)}...')
     ref_gdb = str(ref_path.parent)
     layer = ref_path.name.replace('main.', '')  # geopackage puts 'main.' in layer name
-    ref_gdf = gpd.read_file(ref_gdb, layer=layer).to_crs(wgs84_epsg)
+    ref_gdf = gpd.read_file(ref_gdb, layer=layer)#.to_crs(wgs84_epsg)
 
     rounding = {'StateLeng': 0, 'ClippedLeng': 0, 'Percentage': 2}
     types = {'StateLeng': 'int64', 'ClippedLeng': 'int64'}
@@ -206,7 +206,11 @@ if __name__ == '__main__':
             dm_idx = cusp_gdf.SOURCE_ID.str[0:2] == 'DM'
             cusp_gdf = cusp_gdf[gc_idx | dm_idx]
 
-        #for region in cusp_gdf.NOAA_Regio.unique()[0:2]:
+        if data_sources == 'GC':
+            gc_idx = cusp_gdf.SOURCE_ID.str[0:2] == 'GC'
+            cusp_gdf = cusp_gdf[gc_idx]
+
+        #for region in cusp_gdf.NOAA_Regio.unique():
         for region in ['Alaska']:
             region_id = ''.join([c.capitalize() for c in region.split(' ')])
             print_region_header(region, '-', 75)
