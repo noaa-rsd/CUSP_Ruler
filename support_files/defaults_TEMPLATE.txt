@@ -7,5 +7,5 @@
  "data_sources": "GC & DM",
  "output_dir": "Z:\\CUSP_Ruler\\Results",
  "simplification": 0.002,
- "buff_radius": 400
+ "buff_radius": 500
 }

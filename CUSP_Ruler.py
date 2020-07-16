@@ -135,6 +135,17 @@ def save_config(reference, cusp_fcs, cusp_txt, data_sources, out_dir, simp, buff
         json.dump(default_paths, f, indent=1)
 
 
+def get_cusp_paths(cusp_fcs, cusp_txt):
+    cusps = None
+
+    if cusp_fcs:
+        cusps = str(cusp_fcs)
+    elif cusp_txt:
+        with open(str(cusp_txt), 'r') as f:
+            cusps = ';'.join([l.strip() for l in f.readlines()])
+    return cusps
+
+
 if __name__ == '__main__':
     tic = datetime.now()
     print_splash()
@@ -160,7 +171,7 @@ if __name__ == '__main__':
     
     ref_path = Path(reference)
 
-   
+    
     def get_cusp_paths(cusp_fcs, cusp_txt):
         cusps = None
 
@@ -171,6 +182,7 @@ if __name__ == '__main__':
                 cusps = ';'.join([l.strip() for l in f.readlines()])
         return cusps
 
+      
     cusp_path_strs = get_cusp_paths(cusp_fcs, cusp_txt)
     cusp_paths = [Path(c) for c in cusp_path_strs.split(';')]
     out_dir = Path(out_dir)
