@@ -1,11 +1,12 @@
 {
  "reference_fc": "C:\\Users\\Nick.Forfinski-Sarko\\Documents\\ArcGIS\\Projects\\CUSP_Ruler\\CUSP_Ruler.gdb\\ENC_Shoreline_StateRegions",
  "cusp_fcs": [
-  "None"
+  "D:\\z_drive\\CUSP_Ruler\\20190717_contemporary_shoreline.gdb\\shoreline"
  ],
- "cusp_txt": "Z:\\CUSP_Ruler\\FiscalYearCUSPs.txt",
- "data_sources": "GC & DM",
- "output_dir": "Z:\\CUSP_Ruler\\Results",
+ "cusp_txt": "None",
+ "data_sources": "All",
+ "output_dir": "D:\\z_drive\\CUSP_Ruler\\Results",
+
  "simplification": 0.002,
  "buff_radius": 500
 }
