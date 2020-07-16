@@ -256,14 +256,9 @@ if __name__ == '__main__':
             ref_sidx = ref_to_clip.sindex
 
             if not ref_to_clip.empty:
-                arcpy.AddMessage(ref_to_clip)
-                arcpy.AddMessage(cusp_buffer_gdf.geometry)
-
                 refs_clipped = []
                 for buff in cusp_buffer_gdf.geometry:
-                    arcpy.AddMessage(str(ref_sidx))
                     possible_ref_idx = list(ref_sidx.intersection(buff.bounds))
-                    arcpy.AddMessage(possible_ref_idx)
                     possible_ref = ref_to_clip.iloc[possible_ref_idx]
 
                     for j, row in possible_ref.iterrows():
@@ -288,7 +283,6 @@ if __name__ == '__main__':
 
                 df.index.names = ['stateName']
                 col_order = ['noaaRegion', 'ClippedLeng', 'StateLeng', 'Percentage']
-                arcpy.AddMessage(df[col_order].round(rounding).astype(types))
                 results.append(df[col_order])
             else:
                 arcpy.AddMessage('"ref_to_clip" is empty')
