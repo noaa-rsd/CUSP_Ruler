@@ -21,10 +21,11 @@ Installing CUSP Ruler consists of 2 main steps:
 1. create/configure ArcPro Python environment
 +++++++++++++++++++++++++++++++++++++++++++++
 
-1.1 Clone the default ArcPro Python environment by issueing the following command at an Anaconda prompt:
+1.1 Clone the default ArcPro Python environment by issueing the following command at an Anaconda prompt (the --clone and --prefix parameters are only examples):
+
 ::
 
-  conda create --clone C:\\<> --prefix C:\\<>\cusp_ruler
+  conda create --clone 'C:\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-py3' --prefix C:\Users\Nick.Forfinski-Sarko\AppData\Local\Continuum\anaconda3\envs\cusp_ruler
   
 1.2 Install the Python package Geopandas
 
@@ -33,10 +34,11 @@ First, uninstall the default gdal package with the following command (at the Ana
 
   conda uninstall gdal
   
-Second, install the Geopandas package with the following command (at the Anaconda prompt):
+Second, install the Geopandas and cartopy packages with the following commands (at the Anaconda prompt):
 ::
 
   conda install geopandas
+  conda install cartopy
   
 1.3 Configure ArcPro Python environment
 
