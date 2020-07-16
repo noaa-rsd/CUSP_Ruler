@@ -6,6 +6,7 @@
  "cusp_txt": "None",
  "data_sources": "All",
  "output_dir": "D:\\z_drive\\CUSP_Ruler\\Results",
+
  "simplification": 0.002,
- "buff_radius": 400
+ "buff_radius": 500
 }
