@@ -32,7 +32,7 @@ Installing CUSP Ruler consists of 2 main steps:
 Install the geopandas, fiona, and cartopy packages with the following commands (at the Anaconda prompt):
 ::
 
-`conda install fiona geopandas cartopy`
+  conda install fiona geopandas cartopy
   
 1.3 Configure ArcPro Python environment
 
