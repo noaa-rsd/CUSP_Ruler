@@ -88,7 +88,7 @@ The geodesic lengths of the clipped reference shoreline segments are calcualted 
 Output
 ======
 
-The main output is an ASCII table summarizing the kilometers of CUSP per NOAA region, per state by state.  The summary table has five columns:
+The main output is an ASCII table summarizing the kilometers of CUSP per NOAA region, by state.  The summary table has five columns:
 
 =============   =============================================================
 COLUMN          DESCRIPTION
